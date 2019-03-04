@@ -10,10 +10,11 @@ defmodule Donos.Client do
   end
 
   def gen_name do
-    Range.new(?a, ?z)
-    |> Enum.take_random(:rand.uniform(5) + 5)
-    |> List.to_string()
-    |> String.capitalize()
+    url = "http://freegenerator.ru/fio"
+    form_data = "fam=1&imya=1&otch=0&pol=1&count=1"
+    headers = [{"Content-Type", "application/x-www-form-urlencoded"}]
+    response = HTTPoison.post!(url, form_data, headers)
+    String.slice(response.body, 0..-7)
   end
 
   def message(user_id, message) do

@@ -11,10 +11,10 @@ defmodule Donos.Chat do
 
   defp message(author, message) do
     spawn(fn ->
-      message = "[#{author.name}]\n #{message}"
+      message = "*#{author.name}*\n#{message}"
 
       for user_id <- Clients.users(), user_id != author.id do
-        Nadia.send_message(user_id, message)
+        Nadia.send_message(user_id, message, parse_mode: "markdown")
       end
     end)
   end

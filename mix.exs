@@ -20,7 +20,8 @@ defmodule Donos.MixProject do
 
   defp deps do
     [
-      {:nadia, "~> 0.4.4"}
+      {:nadia, "~> 0.4.4"},
+      {:httpoison, "~> 1.1.1"}
     ]
   end
 end
