@@ -13,6 +13,21 @@ defmodule Donos.Session do
     GenServer.start(__MODULE__, user_id)
   end
 
+  def get(user_id) do
+    case SessionsRegister.get(user_id) do
+      {:ok, session} ->
+        session
+
+      :error ->
+        {:ok, session} = start(user_id)
+        session
+    end
+  end
+
+  def stop(user_id) do
+    GenServer.stop(get(user_id))
+  end
+
   def gen_name do
     form_data = URI.encode_query(fam: 1, imya: 1, otch: 0, pol: 1, count: 1)
     headers = [{"Content-Type", "application/x-www-form-urlencoded"}]
@@ -24,17 +39,16 @@ defmodule Donos.Session do
   end
 
   def message(user_id, message) do
-    session = SessionsRegister.get_or_start(user_id)
-    GenServer.cast(session, {:message, message})
+    GenServer.cast(get(user_id), {:message, message})
   end
 
   def photo(user_id, caption, photo) do
-    session = SessionsRegister.get_or_start(user_id)
-    GenServer.cast(session, {:photo, caption, photo})
+    GenServer.cast(get(user_id), {:photo, caption, photo})
   end
 
   @impl GenServer
   def init(user_id) do
+    SessionsRegister.register(user_id, self())
     name = gen_name()
     session = %State{user_id: user_id, name: name}
     Chat.local_message(user_id, "Ваше имя: #{name}")
@@ -60,7 +74,7 @@ defmodule Donos.Session do
 
   @impl GenServer
   def terminate(_reason, session) do
-    Chat.local_message(session.user_id, "Ваша сессия кончилась")
     SessionsRegister.unregister(session.user_id)
+    Chat.local_message(session.user_id, "Ваша сессия кончилась")
   end
 end

@@ -1,14 +1,16 @@
 defmodule Donos.SessionsRegister do
   use GenServer
 
-  alias Donos.Session
-
   def start_link(_) do
     GenServer.start_link(__MODULE__, :none, name: __MODULE__)
   end
 
-  def get_or_start(user_id) do
-    GenServer.call(__MODULE__, {:get_or_start, user_id})
+  def get(user_id) do
+    GenServer.call(__MODULE__, {:get, user_id})
+  end
+
+  def register(user_id, session) do
+    GenServer.cast(__MODULE__, {:register, user_id, session})
   end
 
   def unregister(user_id) do
@@ -21,16 +23,13 @@ defmodule Donos.SessionsRegister do
   end
 
   @impl GenServer
-  def handle_call({:get_or_start, user_id}, _, sessions) do
-    case Map.fetch(sessions, user_id) do
-      {:ok, session} ->
-        {:reply, session, sessions}
+  def handle_call({:get, user_id}, _, sessions) do
+    {:reply, Map.fetch(sessions, user_id), sessions}
+  end
 
-      :error ->
-        {:ok, session} = Session.start(user_id)
-        sessions = Map.put(sessions, user_id, session)
-        {:reply, session, sessions}
-    end
+  @impl GenServer
+  def handle_cast({:register, user_id, session}, sessions) do
+    {:noreply, Map.put(sessions, user_id, session)}
   end
 
   @impl GenServer

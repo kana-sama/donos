@@ -1,7 +1,7 @@
 defmodule Donos.TelegramAPI do
   use GenServer
 
-  alias Donos.{Chat}
+  alias Donos.{Chat, Session}
   alias Nadia.Model.{Update, Message}
 
   def start_link(_) do
@@ -23,8 +23,13 @@ defmodule Donos.TelegramAPI do
         Enum.reduce(updates, offset, fn update, _ ->
           case update do
             %Update{message: %Message{from: user, text: message}} when is_binary(message) ->
-              if not String.starts_with?(message, "/") do
-                Chat.broadcast_user_message(user.id, message)
+              cond do
+                not String.starts_with?(message, "/") ->
+                  Chat.broadcast_user_message(user.id, message)
+
+                message == "/relogin" ->
+                  Session.stop(user.id)
+                  Session.start(user.id)
               end
 
             %Update{message: %Message{from: user, photo: photos, caption: caption}}

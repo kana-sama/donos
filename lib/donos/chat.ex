@@ -34,9 +34,8 @@ defmodule Donos.Chat do
 
   @impl GenServer
   def handle_cast({:local_message, user_id, message}, :none) do
-    message = "**#{message}**"
+    Nadia.send_message(user_id, "_#{message}_", parse_mode: "markdown")
     Users.put(user_id)
-    Nadia.send_message(user_id, message, parse_mode: "markdown")
     {:noreply, :none}
   end
 
