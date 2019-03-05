@@ -19,6 +19,10 @@ defmodule Donos.Chat do
     GenServer.cast(__MODULE__, {:broadcast_session_photo, user_id, user_name, caption, photo})
   end
 
+  def broadcast_session_sticker(user_id, user_name, sticker) do
+    GenServer.cast(__MODULE__, {:broadcast_session_sticker, user_id, user_name, sticker})
+  end
+
   @impl GenServer
   def init(:none) do
     {:ok, :none}
@@ -50,6 +54,18 @@ defmodule Donos.Chat do
 
     for receiver_user_id <- users_to_broadcast(user_id) do
       Nadia.send_photo(receiver_user_id, photo, caption: caption)
+    end
+
+    Users.put(user_id)
+
+    {:noreply, :none}
+  end
+
+  @impl GenServer
+  def handle_cast({:broadcast_session_sticker, user_id, user_name, sticker}, :none) do
+    for receiver_user_id <- users_to_broadcast(user_id) do
+      Nadia.send_message(receiver_user_id, "*#{user_name}* послал стикер", parse_mode: "markdown")
+      Nadia.send_sticker(receiver_user_id, sticker)
     end
 
     Users.put(user_id)

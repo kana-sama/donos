@@ -7,7 +7,7 @@ defmodule Donos.Session do
 
   alias Donos.{SessionsRegister, Chat}
 
-  @timeout 1000 * 60 * 5
+  @timeout 1000 * 60 * 30
 
   def start(user_id) do
     GenServer.start(__MODULE__, user_id)
@@ -29,7 +29,7 @@ defmodule Donos.Session do
   end
 
   def gen_name do
-    form_data = URI.encode_query(fam: 1, imya: 1, otch: 0, pol: 1, count: 1)
+    form_data = URI.encode_query(fam: 1, imya: 1, otch: 0, pol: 0, count: 1)
     headers = [{"Content-Type", "application/x-www-form-urlencoded"}]
 
     "http://freegenerator.ru/fio"
@@ -44,6 +44,10 @@ defmodule Donos.Session do
 
   def photo(user_id, caption, photo) do
     GenServer.cast(get(user_id), {:photo, caption, photo})
+  end
+
+  def sticker(user_id, sticker) do
+    GenServer.cast(get(user_id), {:sticker, sticker})
   end
 
   @impl GenServer
@@ -64,6 +68,12 @@ defmodule Donos.Session do
   @impl GenServer
   def handle_cast({:photo, caption, photo}, session) do
     Chat.broadcast_session_photo(session.user_id, session.name, caption, photo)
+    {:noreply, session, @timeout}
+  end
+
+  @impl GenServer
+  def handle_cast({:sticker, sticker}, session) do
+    Chat.broadcast_session_sticker(session.user_id, session.name, sticker)
     {:noreply, session, @timeout}
   end
 

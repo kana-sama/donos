@@ -1,8 +1,8 @@
 defmodule Donos.TelegramAPI do
   use GenServer
 
-  alias Donos.Session
-  alias Nadia.Model.{Update, Message}
+  alias Donos.{Session, Chat}
+  alias Nadia.Model.{Update, Message, Sticker}
 
   def start_link(_) do
     GenServer.start_link(__MODULE__, :none, name: __MODULE__)
@@ -22,30 +22,37 @@ defmodule Donos.TelegramAPI do
 
         Enum.reduce(updates, offset, fn update, _ ->
           case update do
-            %Update{message: %Message{from: user, text: message}} when is_binary(message) ->
-              cond do
-                not String.starts_with?(message, "/") ->
-                  Session.message(user.id, message)
+            %Update{message: %Message{from: user, text: "/relogin"}} ->
+              Session.stop(user.id)
+              Session.start(user.id)
 
-                message == "/relogin" ->
-                  Session.stop(user.id)
-                  Session.start(user.id)
-              end
+            %Update{message: %Message{from: user, text: <<"/", command::binary>>}} ->
+              Chat.local_message(user.id, "Комманда не поддерживается: #{command}")
+
+            %Update{message: %Message{from: user, text: <<message::binary>>}} ->
+              Session.message(user.id, message)
 
             %Update{message: %Message{from: user, photo: [_ | _] = photos, caption: caption}} ->
               photo = Enum.at(photos, -1).file_id
               Session.photo(user.id, caption || "", photo)
 
+            %Update{message: %Message{from: user, sticker: %Sticker{} = sticker}} ->
+              Session.sticker(user.id, sticker.file_id)
+
             _ ->
-              :ok
+              IO.inspect(update)
           end
 
           update.update_id + 1
         end)
       rescue
-        _ -> offset
+        error ->
+          IO.inspect(error)
+          offset
       catch
-        _ -> offset
+        error ->
+          IO.inspect(error)
+          offset
       end
 
     schedule_polling()
@@ -53,6 +60,6 @@ defmodule Donos.TelegramAPI do
   end
 
   defp schedule_polling() do
-    Process.send_after(self(), :poll, 100)
+    Process.send_after(self(), :poll, 300)
   end
 end
