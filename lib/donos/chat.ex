@@ -1,7 +1,7 @@
 defmodule Donos.Chat do
   use GenServer
 
-  alias Donos.{Session, Users}
+  alias Donos.Users
 
   def start_link(_) do
     GenServer.start_link(__MODULE__, :none, name: __MODULE__)
@@ -9,14 +9,6 @@ defmodule Donos.Chat do
 
   def local_message(user_id, message) do
     GenServer.cast(__MODULE__, {:local_message, user_id, message})
-  end
-
-  def broadcast_user_message(user_id, message) do
-    GenServer.cast(__MODULE__, {:broadcast_user_message, user_id, message})
-  end
-
-  def broadcast_user_photo(user_id, caption, photo) do
-    GenServer.cast(__MODULE__, {:broadcast_user_photo, user_id, caption, photo})
   end
 
   def broadcast_session_message(user_id, user_name, message) do
@@ -35,20 +27,6 @@ defmodule Donos.Chat do
   @impl GenServer
   def handle_cast({:local_message, user_id, message}, :none) do
     Nadia.send_message(user_id, "_#{message}_", parse_mode: "markdown")
-    Users.put(user_id)
-    {:noreply, :none}
-  end
-
-  @impl GenServer
-  def handle_cast({:broadcast_user_message, user_id, message}, :none) do
-    Session.message(user_id, message)
-    Users.put(user_id)
-    {:noreply, :none}
-  end
-
-  @impl GenServer
-  def handle_cast({:broadcast_user_photo, user_id, caption, photo}, :none) do
-    Session.photo(user_id, caption, photo)
     Users.put(user_id)
     {:noreply, :none}
   end

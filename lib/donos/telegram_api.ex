@@ -1,7 +1,7 @@
 defmodule Donos.TelegramAPI do
   use GenServer
 
-  alias Donos.{Chat, Session}
+  alias Donos.Session
   alias Nadia.Model.{Update, Message}
 
   def start_link(_) do
@@ -25,7 +25,7 @@ defmodule Donos.TelegramAPI do
             %Update{message: %Message{from: user, text: message}} when is_binary(message) ->
               cond do
                 not String.starts_with?(message, "/") ->
-                  Chat.broadcast_user_message(user.id, message)
+                  Session.message(user.id, message)
 
                 message == "/relogin" ->
                   Session.stop(user.id)
@@ -34,9 +34,8 @@ defmodule Donos.TelegramAPI do
 
             %Update{message: %Message{from: user, photo: photos, caption: caption}}
             when is_list(photos) ->
-              caption = caption || ""
               photo = Enum.at(photos, -1).file_id
-              Chat.broadcast_user_photo(user.id, caption, photo)
+              Session.photo(user.id, caption || "", photo)
           end
 
           update.update_id + 1
