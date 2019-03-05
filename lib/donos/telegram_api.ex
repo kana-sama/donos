@@ -32,16 +32,18 @@ defmodule Donos.TelegramAPI do
                   Session.start(user.id)
               end
 
-            %Update{message: %Message{from: user, photo: photos, caption: caption}}
-            when is_list(photos) ->
+            %Update{message: %Message{from: user, photo: [_ | _] = photos, caption: caption}} ->
               photo = Enum.at(photos, -1).file_id
               Session.photo(user.id, caption || "", photo)
+
+            _ ->
+              :ok
           end
 
           update.update_id + 1
         end)
       rescue
-        _ -> offset
+        error -> offset
       catch
         _ -> offset
       end
