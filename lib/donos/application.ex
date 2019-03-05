@@ -7,7 +7,7 @@ defmodule Donos.Application do
 
   def start(_type, _args) do
     children = [
-      Donos.Users,
+      Donos.Store,
       Donos.Chat,
       Donos.SessionsRegister,
       Donos.TelegramAPI

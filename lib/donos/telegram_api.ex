@@ -27,7 +27,7 @@ defmodule Donos.TelegramAPI do
               Session.start(user.id)
 
             %Update{message: %Message{from: user, text: <<"/", command::binary>>}} ->
-              Chat.local_message(user.id, "Комманда не поддерживается: #{command}")
+              Chat.local_message(user.id, "Команда не поддерживается: #{command}")
 
             %Update{message: %Message{from: user, text: <<message::binary>>}} ->
               Session.message(user.id, message)

@@ -1,7 +1,7 @@
 defmodule Donos.Chat do
   use GenServer
 
-  alias Donos.Users
+  alias Donos.Store
 
   def start_link(_) do
     GenServer.start_link(__MODULE__, :none, name: __MODULE__)
@@ -31,7 +31,7 @@ defmodule Donos.Chat do
   @impl GenServer
   def handle_cast({:local_message, user_id, message}, :none) do
     Nadia.send_message(user_id, "_#{message}_", parse_mode: "markdown")
-    Users.put(user_id)
+    Store.put_user(user_id)
     {:noreply, :none}
   end
 
@@ -43,7 +43,7 @@ defmodule Donos.Chat do
       Nadia.send_message(receiver_user_id, message, parse_mode: "markdown")
     end
 
-    Users.put(user_id)
+    Store.put_user(user_id)
 
     {:noreply, :none}
   end
@@ -56,7 +56,7 @@ defmodule Donos.Chat do
       Nadia.send_photo(receiver_user_id, photo, caption: caption)
     end
 
-    Users.put(user_id)
+    Store.put_user(user_id)
 
     {:noreply, :none}
   end
@@ -68,13 +68,13 @@ defmodule Donos.Chat do
       Nadia.send_sticker(receiver_user_id, sticker)
     end
 
-    Users.put(user_id)
+    Store.put_user(user_id)
 
     {:noreply, :none}
   end
 
   def users_to_broadcast(current_user_id) do
-    users = Users.get()
+    users = Store.get_users()
 
     if Donos.Application.show_own_messages?() do
       users
