@@ -26,6 +26,9 @@ defmodule Donos.TelegramAPI do
               Session.stop(user.id)
               Session.start(user.id)
 
+            %Update{message: %Message{from: user, text: "/start"}} ->
+              Chat.local_message(user.id, "Привет анон, это анонимный чат")
+
             %Update{message: %Message{from: user, text: <<"/", command::binary>>}} ->
               Chat.local_message(user.id, "Команда не поддерживается: #{command}")
 
