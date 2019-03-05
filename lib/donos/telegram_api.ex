@@ -39,6 +39,9 @@ defmodule Donos.TelegramAPI do
             %Update{message: %Message{from: user, sticker: %Sticker{} = sticker}} ->
               Session.sticker(user.id, sticker.file_id)
 
+            %Update{edited_message: %{message_id: id, text: text}} when is_binary(text) ->
+              Chat.edit_text(id, text)
+
             _ ->
               IO.inspect(update)
           end

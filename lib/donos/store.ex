@@ -13,12 +13,16 @@ defmodule Donos.Store do
     GenServer.call(__MODULE__, :get_users)
   end
 
+  def get_messages(message_id) do
+    GenServer.call(__MODULE__, {:get_messages, message_id})
+  end
+
   def put_user(user_id) do
     GenServer.cast(__MODULE__, {:put_user, user_id})
   end
 
-  def put_message(original_message_id, message_ids) do
-    GenServer.cast(__MODULE__, {:put_message, original_message_id, message_ids})
+  def put_messages(original_message_id, message_ids) do
+    GenServer.cast(__MODULE__, {:put_messages, original_message_id, message_ids})
   end
 
   @impl GenServer
@@ -43,6 +47,11 @@ defmodule Donos.Store do
   end
 
   @impl GenServer
+  def handle_call({:get_messages, message_id}, _, state) do
+    {:reply, Map.fetch(state.messages, message_id), state}
+  end
+
+  @impl GenServer
   def handle_cast({:put_user, user_id}, state) do
     state = %{state | users: MapSet.put(state.users, user_id)}
     persist(state)
@@ -50,7 +59,7 @@ defmodule Donos.Store do
   end
 
   @impl GenServer
-  def handle_cast({:put_message, original_message_id, message_ids}, state) do
+  def handle_cast({:put_messages, original_message_id, message_ids}, state) do
     state = %{state | messages: Map.put(state.messages, original_message_id, message_ids)}
     persist(state)
     {:noreply, state}
