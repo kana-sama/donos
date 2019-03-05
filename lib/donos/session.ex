@@ -38,8 +38,8 @@ defmodule Donos.Session do
     |> String.slice(0..-7)
   end
 
-  def message(user_id, message) do
-    GenServer.cast(get(user_id), {:message, message})
+  def text(user_id, original_message_id, text) do
+    GenServer.cast(get(user_id), {:text, original_message_id, text})
   end
 
   def photo(user_id, caption, photo) do
@@ -60,20 +60,20 @@ defmodule Donos.Session do
   end
 
   @impl GenServer
-  def handle_cast({:message, message}, session) do
-    Chat.broadcast_session_message(session.user_id, session.name, message)
+  def handle_cast({:text, original_message_id, text}, session) do
+    Chat.broadcast_message(session.user_id, session.name, original_message_id, text)
     {:noreply, session, @timeout}
   end
 
   @impl GenServer
   def handle_cast({:photo, caption, photo}, session) do
-    Chat.broadcast_session_photo(session.user_id, session.name, caption, photo)
+    Chat.broadcast_photo(session.user_id, session.name, caption, photo)
     {:noreply, session, @timeout}
   end
 
   @impl GenServer
   def handle_cast({:sticker, sticker}, session) do
-    Chat.broadcast_session_sticker(session.user_id, session.name, sticker)
+    Chat.broadcast_sticker(session.user_id, session.name, sticker)
     {:noreply, session, @timeout}
   end
 

@@ -29,8 +29,8 @@ defmodule Donos.TelegramAPI do
             %Update{message: %Message{from: user, text: <<"/", command::binary>>}} ->
               Chat.local_message(user.id, "Команда не поддерживается: #{command}")
 
-            %Update{message: %Message{from: user, text: <<message::binary>>}} ->
-              Session.message(user.id, message)
+            %Update{message: %Message{text: text} = message} when is_binary(text) ->
+              Session.text(message.from.id, message.message_id, text)
 
             %Update{message: %Message{from: user, photo: [_ | _] = photos, caption: caption}} ->
               photo = Enum.at(photos, -1).file_id

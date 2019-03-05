@@ -11,16 +11,19 @@ defmodule Donos.Chat do
     GenServer.cast(__MODULE__, {:local_message, user_id, message})
   end
 
-  def broadcast_session_message(user_id, user_name, message) do
-    GenServer.cast(__MODULE__, {:broadcast_session_message, user_id, user_name, message})
+  def broadcast_message(user_id, user_name, original_message_id, text) do
+    GenServer.cast(
+      __MODULE__,
+      {:broadcast_message, user_id, user_name, original_message_id, text}
+    )
   end
 
-  def broadcast_session_photo(user_id, user_name, caption, photo) do
-    GenServer.cast(__MODULE__, {:broadcast_session_photo, user_id, user_name, caption, photo})
+  def broadcast_photo(user_id, user_name, caption, photo) do
+    GenServer.cast(__MODULE__, {:broadcast_photo, user_id, user_name, caption, photo})
   end
 
-  def broadcast_session_sticker(user_id, user_name, sticker) do
-    GenServer.cast(__MODULE__, {:broadcast_session_sticker, user_id, user_name, sticker})
+  def broadcast_sticker(user_id, user_name, sticker) do
+    GenServer.cast(__MODULE__, {:broadcast_sticker, user_id, user_name, sticker})
   end
 
   @impl GenServer
@@ -36,20 +39,28 @@ defmodule Donos.Chat do
   end
 
   @impl GenServer
-  def handle_cast({:broadcast_session_message, user_id, user_name, message}, :none) do
-    message = "*#{user_name}*\n#{message}"
+  def handle_cast({:broadcast_message, user_id, user_name, original_message_id, text}, :none) do
+    text = "*#{user_name}*\n#{text}"
 
-    for receiver_user_id <- users_to_broadcast(user_id) do
-      Nadia.send_message(receiver_user_id, message, parse_mode: "markdown")
-    end
+    message_ids =
+      Enum.reduce(users_to_broadcast(user_id), Map.new(), fn user_id, message_ids ->
+        case Nadia.send_message(user_id, text, parse_mode: "markdown") do
+          {:ok, message} ->
+            Map.put(message_ids, user_id, message.message_id)
+
+          {:error, _error} ->
+            message_ids
+        end
+      end)
 
     Store.put_user(user_id)
+    Store.put_message(original_message_id, message_ids)
 
     {:noreply, :none}
   end
 
   @impl GenServer
-  def handle_cast({:broadcast_session_photo, user_id, user_name, caption, photo}, :none) do
+  def handle_cast({:broadcast_photo, user_id, user_name, caption, photo}, :none) do
     caption = "#{user_name}\n#{caption}"
 
     for receiver_user_id <- users_to_broadcast(user_id) do
@@ -62,7 +73,7 @@ defmodule Donos.Chat do
   end
 
   @impl GenServer
-  def handle_cast({:broadcast_session_sticker, user_id, user_name, sticker}, :none) do
+  def handle_cast({:broadcast_sticker, user_id, user_name, sticker}, :none) do
     for receiver_user_id <- users_to_broadcast(user_id) do
       Nadia.send_message(receiver_user_id, "*#{user_name}* послал стикер", parse_mode: "markdown")
       Nadia.send_sticker(receiver_user_id, sticker)

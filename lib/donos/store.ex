@@ -17,6 +17,10 @@ defmodule Donos.Store do
     GenServer.cast(__MODULE__, {:put_user, user_id})
   end
 
+  def put_message(original_message_id, message_ids) do
+    GenServer.cast(__MODULE__, {:put_message, original_message_id, message_ids})
+  end
+
   @impl GenServer
   def init(:none) do
     state =
@@ -41,6 +45,13 @@ defmodule Donos.Store do
   @impl GenServer
   def handle_cast({:put_user, user_id}, state) do
     state = %{state | users: MapSet.put(state.users, user_id)}
+    persist(state)
+    {:noreply, state}
+  end
+
+  @impl GenServer
+  def handle_cast({:put_message, original_message_id, message_ids}, state) do
+    state = %{state | messages: Map.put(state.messages, original_message_id, message_ids)}
     persist(state)
     {:noreply, state}
   end
