@@ -43,7 +43,7 @@ defmodule Donos.TelegramAPI do
           update.update_id + 1
         end)
       rescue
-        error -> offset
+        _ -> offset
       catch
         _ -> offset
       end
