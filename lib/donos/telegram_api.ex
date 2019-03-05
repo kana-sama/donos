@@ -1,7 +1,7 @@
 defmodule Donos.TelegramAPI do
   use GenServer
 
-  alias Donos.Client
+  alias Donos.{Chat}
   alias Nadia.Model.{Update, Message}
 
   def start_link(_) do
@@ -17,15 +17,30 @@ defmodule Donos.TelegramAPI do
   @impl GenServer
   def handle_info(:poll, offset) do
     offset =
-      with {:ok, updates} <- Nadia.get_updates(offset: offset) do
+      try do
+        {:ok, updates} = Nadia.get_updates(offset: offset)
+
         Enum.reduce(updates, offset, fn update, _ ->
-          with %Update{message: %Message{} = message} <- update do
-            Client.message(message.from.id, message.text)
+          IO.inspect(update)
+
+          case update do
+            %Update{message: %Message{from: user, text: message}} when is_binary(message) ->
+              if not String.starts_with?(message, "/") do
+                Chat.broadcast_user_message(user.id, message)
+              end
+
+            %Update{message: %Message{from: user, photo: photos, caption: caption}}
+            when is_list(photos) ->
+              caption = caption || ""
+              photo = Enum.at(photos, -1).file_id
+              Chat.broadcast_user_photo(user.id, caption, photo)
           end
 
           update.update_id + 1
         end)
-      else
+      rescue
+        _ -> offset
+      catch
         _ -> offset
       end
 
