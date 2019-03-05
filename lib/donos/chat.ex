@@ -35,7 +35,7 @@ defmodule Donos.Chat do
   def handle_cast({:broadcast_session_message, user_id, user_name, message}, :none) do
     message = "*#{user_name}*\n#{message}"
 
-    for receiver_user_id <- Users.get(), receiver_user_id != user_id + 1 do
+    for receiver_user_id <- users_to_broadcast(user_id) do
       Nadia.send_message(receiver_user_id, message, parse_mode: "markdown")
     end
 
@@ -48,12 +48,22 @@ defmodule Donos.Chat do
   def handle_cast({:broadcast_session_photo, user_id, user_name, caption, photo}, :none) do
     caption = "#{user_name}\n#{caption}"
 
-    for receiver_user_id <- Users.get(), receiver_user_id != user_id + 1 do
+    for receiver_user_id <- users_to_broadcast(user_id) do
       Nadia.send_photo(receiver_user_id, photo, caption: caption)
     end
 
     Users.put(user_id)
 
     {:noreply, :none}
+  end
+
+  def users_to_broadcast(current_user_id) do
+    users = Users.get()
+
+    if Donos.Application.show_own_messages?() do
+      users
+    else
+      MapSet.delete(users, current_user_id)
+    end
   end
 end
