@@ -60,6 +60,7 @@ defmodule Donos.Session do
 
   @impl GenServer
   def terminate(_reason, session) do
+    Chat.local_message(session.user_id, "Ваша сессия кончилась")
     SessionsRegister.unregister(session.user_id)
   end
 end

@@ -21,8 +21,6 @@ defmodule Donos.TelegramAPI do
         {:ok, updates} = Nadia.get_updates(offset: offset)
 
         Enum.reduce(updates, offset, fn update, _ ->
-          IO.inspect(update)
-
           case update do
             %Update{message: %Message{from: user, text: message}} when is_binary(message) ->
               if not String.starts_with?(message, "/") do
