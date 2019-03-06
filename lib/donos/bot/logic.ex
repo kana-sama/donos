@@ -60,6 +60,16 @@ defmodule Donos.Bot.Logic do
     Session.start(message.from.id)
   end
 
+  def handle_post({:command, <<"setname ", name :: binary>>}, message, _reply_to) do
+    response =
+      case Session.set_name(message.from.id, name) do
+        {:ok, name} -> "Твоё новое имя: #{name}"
+        {:error, reason} -> "Ошибка: #{reason}"
+      end
+
+    send_markdown(message.from.id, {:system, response})
+  end
+
   def handle_post({:command, command}, message, _reply_to) do
     send_markdown(message.from.id, {:system, "Команда не поддерживается: #{command}"})
   end
