@@ -32,6 +32,10 @@ defmodule Donos.Session do
     GenServer.call(get(user_id), :get_name)
   end
 
+  def set_name(user_id, name) do
+    GenServer.call(get(user_id), {:set_name, name})
+  end
+
   @impl GenServer
   def init(user_id) do
     name = gen_name()
@@ -47,6 +51,17 @@ defmodule Donos.Session do
   @impl GenServer
   def handle_call(:get_name, _, session) do
     {:reply, session.name, session, @timeout}
+  end
+
+  @impl GenServer
+  def handle_call({:set_name, name}, _, session) do
+    name = String.trim(name)
+
+    if String.length(name) > 20 do
+      {:reply, {:error, "ты охуел делать такой длинный ник?"}, session, @timeout}
+    else
+      {:reply, {:ok, name}, %{session | name: name}, @timeout}
+    end
   end
 
   @impl GenServer
