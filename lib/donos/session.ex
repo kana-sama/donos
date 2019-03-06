@@ -65,6 +65,8 @@ defmodule Donos.Session do
         {:reply, {:error, "ник не может быть пустым"}, session, @timeout}
 
       true ->
+        emoji = gen_emoji()
+        name = "#{emoji} #{name}"
         {:reply, {:ok, name}, %{session | name: name}, @timeout}
     end
   end
@@ -80,9 +82,13 @@ defmodule Donos.Session do
     Bot.Logic.local_system_message(session.user_id, "Твоя сессия закончилась")
   end
 
+  defp gen_emoji do
+    Exmoji.all() |> Enum.random() |> Exmoji.EmojiChar.render()
+  end
+
   defp gen_name do
     name = Faker.Pokemon.name()
-    emoji = Exmoji.all() |> Enum.random() |> Exmoji.EmojiChar.render()
-    "#{emoji}  #{name}"
+    emoji = gen_emoji()
+    "#{emoji} #{name}"
   end
 end
