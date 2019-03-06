@@ -17,6 +17,10 @@ defmodule Donos.Store do
     GenServer.call(__MODULE__, {:get_messages, message_id})
   end
 
+  def get_related_messages(user_id, message_id) do
+    GenServer.call(__MODULE__, {:get_related_messages, user_id, message_id})
+  end
+
   def put_user(user_id) do
     GenServer.cast(__MODULE__, {:put_user, user_id})
   end
@@ -49,6 +53,23 @@ defmodule Donos.Store do
   @impl GenServer
   def handle_call({:get_messages, message_id}, _, state) do
     {:reply, Map.fetch(state.messages, message_id), state}
+  end
+
+  @impl GenServer
+  def handle_call({:get_related_messages, user_id, message_id}, _, state) do
+    case Enum.find(state.messages, fn
+           {_original, {_name, messages}} ->
+             Map.get(messages, user_id) == message_id
+
+           _ ->
+             nil
+         end) do
+      nil ->
+        {:reply, :error, state}
+
+      value ->
+        {:reply, {:ok, value}, state}
+    end
   end
 
   @impl GenServer

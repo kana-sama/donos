@@ -28,7 +28,8 @@ defmodule Donos.Bot.Logic do
 
   @impl GenServer
   def handle_cast({:post, content, message}, :none) do
-    handle_post(content, message)
+    reply_to = get_reply_to(message)
+    handle_post(content, message, reply_to)
     {:noreply, :none}
   end
 
@@ -44,76 +45,101 @@ defmodule Donos.Bot.Logic do
     {:noreply, :none}
   end
 
-  def handle_post({:command, "start"}, message) do
+  def handle_post({:command, "start"}, message, _reply_to) do
     Store.put_user(message.from.id)
     send_markdown(message.from.id, {:system, "Привет анон, это анонимный чат"})
   end
 
-  def handle_post({:command, "ping"}, message) do
+  def handle_post({:command, "ping"}, message, _reply_to) do
     send_markdown(message.from.id, {:system, "pong"})
   end
 
-  def handle_post({:command, "relogin"}, message) do
+  def handle_post({:command, "relogin"}, message, _reply_to) do
     Session.stop(message.from.id)
     Session.start(message.from.id)
   end
 
-  def handle_post({:command, command}, message) do
+  def handle_post({:command, command}, message, _reply_to) do
     send_markdown(message.from.id, {:system, "Команда не поддерживается: #{command}"})
   end
 
-  def handle_post({:text, text}, message) do
+  def handle_post({:text, text}, message, reply_to) do
     broadcast_content(message, fn user_id, name ->
-      send_markdown(user_id, {:post, name, text})
+      send_markdown(user_id, {:post, name, text}, reply_to[user_id])
     end)
   end
 
-  def handle_post({:audio, audio}, message) do
+  def handle_post({:audio, audio}, message, reply_to) do
     broadcast_content(message, fn user_id, name ->
       send_markdown(user_id, {:announce, name, "аудио"})
-      Nadia.send_audio(user_id, audio, caption: message.caption)
+
+      Nadia.send_audio(user_id, audio,
+        caption: message.caption,
+        reply_to: reply_to[user_id]
+      )
     end)
   end
 
-  def handle_post({:document, document}, message) do
+  def handle_post({:document, document}, message, reply_to) do
     broadcast_content(message, fn user_id, name ->
       send_markdown(user_id, {:announce, name, "файл"})
-      Nadia.send_document(user_id, document, caption: message.caption)
+
+      Nadia.send_document(user_id, document,
+        caption: message.caption,
+        reply_to: reply_to[user_id]
+      )
     end)
   end
 
-  def handle_post({:sticker, sticker}, message) do
+  def handle_post({:sticker, sticker}, message, reply_to) do
     broadcast_content(message, fn user_id, name ->
       send_markdown(user_id, {:announce, name, "стикер"})
-      Nadia.send_sticker(user_id, sticker)
+      Nadia.send_sticker(user_id, sticker, reply_to: reply_to[user_id])
     end)
   end
 
-  def handle_post({:video, video}, message) do
+  def handle_post({:video, video}, message, reply_to) do
     broadcast_content(message, fn user_id, name ->
       send_markdown(user_id, {:announce, name, "видео"})
-      Nadia.send_video(user_id, video, caption: message.caption)
+
+      Nadia.send_video(user_id, video,
+        caption: message.caption,
+        reply_to: reply_to[user_id]
+      )
     end)
   end
 
-  def handle_post({:voice, voice}, message) do
+  def handle_post({:voice, voice}, message, reply_to) do
     broadcast_content(message, fn user_id, name ->
       send_markdown(user_id, {:announce, name, "голосовое сообщение"})
-      Nadia.send_voice(user_id, voice)
+
+      Nadia.send_voice(user_id, voice,
+        caption: message.caption,
+        reply_to: reply_to[user_id]
+      )
     end)
   end
 
-  def handle_post({:contact, phone_number, first_name}, message) do
+  def handle_post({:contact, phone_number, first_name}, message, reply_to) do
     broadcast_content(message, fn user_id, name ->
       send_markdown(user_id, {:announce, name, "контакт"})
-      Nadia.send_contact(user_id, phone_number, first_name, last_name: message.contact.last_name)
+
+      Nadia.send_contact(user_id, phone_number, first_name,
+        caption: message.caption,
+        last_name: message.contact.last_name,
+        reply_to: reply_to[user_id]
+      )
     end)
   end
 
-  def handle_post({:location, latitude, longitude}, message) do
+  def handle_post({:location, latitude, longitude}, message, reply_to) do
     broadcast_content(message, fn user_id, name ->
       send_markdown(user_id, {:announce, name, "местоположение"})
-      Nadia.send_location(user_id, latitude, longitude)
+
+      Nadia.send_location(user_id, latitude, longitude,
+        caption: message.caption,
+        reply_to: reply_to[user_id]
+      )
     end)
   end
 
@@ -163,8 +189,11 @@ defmodule Donos.Bot.Logic do
     end
   end
 
-  defp send_markdown(chat_id, message) do
-    Nadia.send_message(chat_id, format_message(message), parse_mode: "markdown")
+  defp send_markdown(chat_id, message, reply_to \\ nil) do
+    Nadia.send_message(chat_id, format_message(message),
+      reply_to_message_id: reply_to,
+      parse_mode: "markdown"
+    )
   end
 
   defp format_message({:system, text}) do
@@ -181,5 +210,14 @@ defmodule Donos.Bot.Logic do
 
   defp format_message({:announce, name, media}) do
     "*#{name}* отправил #{media}"
+  end
+
+  defp get_reply_to(message) do
+    with %{message_id: reply_to} <- message.reply_to_message,
+         {:ok, {_, {_, messages}}} <- Store.get_related_messages(message.from.id, reply_to) do
+      messages
+    else
+      _ -> %{}
+    end
   end
 end
