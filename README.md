@@ -1,21 +1,10 @@
 # Donos
 
-**TODO: Add description**
+Bot for anonymous chatting in telegram
 
-## Installation
-
-If [available in Hex](https://hex.pm/docs/publish), the package can be installed
-by adding `donos` to your list of dependencies in `mix.exs`:
-
-```elixir
-def deps do
-  [
-    {:donos, "~> 0.1.0"}
-  ]
-end
-```
-
-Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
-and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
-be found at [https://hexdocs.pm/donos](https://hexdocs.pm/donos).
-
+## Run in dev
+- create bot in [@BotFather](t.me/botfather)
+- set token from BotFather in `config/config.dev.ex` `:nadia.token`
+- install deps: `mix deps.get`
+- run repl: `iex -s mix`
+- on code change run `recompile` command
