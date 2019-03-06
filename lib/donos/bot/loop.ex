@@ -64,11 +64,7 @@ defmodule Donos.Bot.Loop do
         end)
       rescue
         error ->
-          IO.inspect(error)
-          offset
-      catch
-        error ->
-          IO.inspect(error)
+          IO.inspect({:logic_error, error})
           offset
       end
 
