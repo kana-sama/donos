@@ -39,7 +39,7 @@ defmodule Donos.Session do
     SessionsRegister.register(user_id, self())
     session = %State{user_id: user_id, name: name}
 
-    Bot.Logic.local_system_message(user_id, "Ваше имя: #{name}")
+    Bot.Logic.local_system_message(user_id, "Твое новое имя: #{name}")
 
     {:ok, session, @timeout}
   end
@@ -57,7 +57,7 @@ defmodule Donos.Session do
   @impl GenServer
   def terminate(_reason, session) do
     SessionsRegister.unregister(session.user_id)
-    Bot.Logic.local_system_message(session.user_id, "Ваша сессия кончилась")
+    Bot.Logic.local_system_message(session.user_id, "Твоя сессия закончилась")
   end
 
   defp gen_name do

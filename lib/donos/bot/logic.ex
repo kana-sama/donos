@@ -48,6 +48,7 @@ defmodule Donos.Bot.Logic do
   def handle_post({:command, "start"}, message, _reply_to) do
     Store.put_user(message.from.id)
     send_markdown(message.from.id, {:system, "Привет анон, это анонимный чат"})
+    Session.get(message.from.id)
   end
 
   def handle_post({:command, "ping"}, message, _reply_to) do
