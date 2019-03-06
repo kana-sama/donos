@@ -162,7 +162,6 @@ defmodule Donos.Bot.Logic do
   def handle_edit({:text, text}, message) do
     with {:ok, %Store.Message{} = stored_message} <- Store.get_messages(message.message_id) do
       text = format_message({:edit, stored_message.user_name, text})
-      IO.inspect(stored_message)
 
       for {user_id, related_message_id} <- stored_message.ids do
         Nadia.edit_message_text(user_id, related_message_id, "", text, parse_mode: "markdown")
