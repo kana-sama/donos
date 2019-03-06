@@ -1,6 +1,10 @@
 defmodule Donos.Store do
   use GenServer
 
+  defmodule Message do
+    defstruct [:user_name, {:ids, Map.new()}]
+  end
+
   defmodule State do
     defstruct users: MapSet.new(), messages: Map.new()
   end
@@ -17,8 +21,8 @@ defmodule Donos.Store do
     GenServer.call(__MODULE__, {:get_messages, message_id})
   end
 
-  def get_related_messages(user_id, message_id) do
-    GenServer.call(__MODULE__, {:get_related_messages, user_id, message_id})
+  def get_message_by_local(user_id, message_id) do
+    GenServer.call(__MODULE__, {:get_message_by_local, user_id, message_id})
   end
 
   def put_user(user_id) do
@@ -56,10 +60,10 @@ defmodule Donos.Store do
   end
 
   @impl GenServer
-  def handle_call({:get_related_messages, user_id, message_id}, _, state) do
+  def handle_call({:get_message_by_local, user_id, message_id}, _, state) do
     case Enum.find(state.messages, fn
-           {_original, {_name, messages}} ->
-             Map.get(messages, user_id) == message_id
+           {_original, %Message{ids: ids}} ->
+             ids[user_id] == message_id
 
            _ ->
              nil
@@ -67,8 +71,8 @@ defmodule Donos.Store do
       nil ->
         {:reply, :error, state}
 
-      value ->
-        {:reply, {:ok, value}, state}
+      {_original_message_id, message} ->
+        {:reply, {:ok, message}, state}
     end
   end
 

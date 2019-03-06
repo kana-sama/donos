@@ -91,6 +91,17 @@ defmodule Donos.Bot.Logic do
     end)
   end
 
+  def handle_post({:photo, photo}, message, reply_to) do
+    broadcast_content(message, fn user_id, name ->
+      send_markdown(user_id, {:announce, name, "пикчу"})
+
+      Nadia.send_photo(user_id, photo,
+        caption: message.caption,
+        reply_to: reply_to[user_id]
+      )
+    end)
+  end
+
   def handle_post({:sticker, sticker}, message, reply_to) do
     broadcast_content(message, fn user_id, name ->
       send_markdown(user_id, {:announce, name, "стикер"})
@@ -149,10 +160,11 @@ defmodule Donos.Bot.Logic do
   end
 
   def handle_edit({:text, text}, message) do
-    with {:ok, {name, related_messages}} <- Store.get_messages(message.message_id) do
-      text = format_message({:edit, name, text})
+    with {:ok, %Store.Message{} = stored_message} <- Store.get_messages(message.message_id) do
+      text = format_message({:edit, stored_message.user_name, text})
+      IO.inspect(stored_message)
 
-      for {user_id, related_message_id} <- related_messages do
+      for {user_id, related_message_id} <- stored_message.ids do
         Nadia.edit_message_text(user_id, related_message_id, "", text, parse_mode: "markdown")
       end
     end
@@ -166,21 +178,25 @@ defmodule Donos.Bot.Logic do
     name = Session.get_name(message.from.id)
 
     message_ids =
-      Enum.reduce(
-        users_to_broadcast(message.from.id),
-        Map.put(Map.new(), message.from.id, message.message_id),
-        fn user_id, message_ids ->
-          case action.(user_id, name) do
-            {:ok, new_message} ->
-              Map.put(message_ids, user_id, new_message.message_id)
+      users_to_broadcast(message.from.id)
+      |> Enum.reduce(Map.new(), fn user_id, message_ids ->
+        case action.(user_id, name) do
+          {:ok, new_message} ->
+            Map.put(message_ids, user_id, new_message.message_id)
 
-            {:error, _error} ->
-              message_ids
-          end
+          {:error, _error} ->
+            message_ids
         end
-      )
+      end)
 
-    Store.put_messages(message.message_id, {name, message_ids})
+    message_ids =
+      if Application.get_env(:donos, :show_own_messages?) do
+        message_ids
+      else
+        Map.put(message_ids, message.from.id, message.message_id)
+      end
+
+    Store.put_messages(message.message_id, %Store.Message{user_name: name, ids: message_ids})
   end
 
   defp users_to_broadcast(current_user_id) do
@@ -218,8 +234,8 @@ defmodule Donos.Bot.Logic do
 
   defp get_reply_to(message) do
     with %{message_id: reply_to} <- message.reply_to_message,
-         {:ok, {_, {_, messages}}} <- Store.get_related_messages(message.from.id, reply_to) do
-      messages
+         {:ok, %Store.Message{ids: ids}} <- Store.get_message_by_local(message.from.id, reply_to) do
+      ids
     else
       _ -> %{}
     end
