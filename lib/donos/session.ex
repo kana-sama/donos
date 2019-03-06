@@ -61,12 +61,6 @@ defmodule Donos.Session do
   end
 
   defp gen_name do
-    form_data = URI.encode_query(fam: 1, imya: 1, otch: 0, pol: 0, count: 1)
-    headers = [{"Content-Type", "application/x-www-form-urlencoded"}]
-
-    "http://freegenerator.ru/fio"
-    |> HTTPoison.post!(form_data, headers)
-    |> Map.get(:body)
-    |> String.slice(0..-7)
+    Faker.Pokemon.name()
   end
 end

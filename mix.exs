@@ -21,7 +21,7 @@ defmodule Donos.MixProject do
   defp deps do
     [
       {:nadia, "~> 0.4.4"},
-      {:httpoison, "~> 1.1.1"}
+      {:faker, "~> 0.12"}
     ]
   end
 end
