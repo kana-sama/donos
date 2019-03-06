@@ -166,15 +166,19 @@ defmodule Donos.Bot.Logic do
     name = Session.get_name(message.from.id)
 
     message_ids =
-      Enum.reduce(users_to_broadcast(message.from.id), Map.new(), fn user_id, message_ids ->
-        case action.(user_id, name) do
-          {:ok, message} ->
-            Map.put(message_ids, user_id, message.message_id)
+      Enum.reduce(
+        users_to_broadcast(message.from.id),
+        Map.put(Map.new(), message.from.id, message.message_id),
+        fn user_id, message_ids ->
+          case action.(user_id, name) do
+            {:ok, new_message} ->
+              Map.put(message_ids, user_id, new_message.message_id)
 
-          {:error, _error} ->
-            message_ids
+            {:error, _error} ->
+              message_ids
+          end
         end
-      end)
+      )
 
     Store.put_messages(message.message_id, {name, message_ids})
   end
