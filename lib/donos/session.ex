@@ -61,6 +61,8 @@ defmodule Donos.Session do
   end
 
   defp gen_name do
-    Faker.Pokemon.name()
+    name = Faker.Pokemon.name()
+    emoji = Exmoji.EmojiChar.render(Enum.random(Exmoji.all))
+    "#{name} #{emoji}"
   end
 end
