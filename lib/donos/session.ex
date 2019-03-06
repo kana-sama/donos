@@ -57,10 +57,15 @@ defmodule Donos.Session do
   def handle_call({:set_name, name}, _, session) do
     name = String.trim(name)
 
-    if String.length(name) > 20 do
-      {:reply, {:error, "ты охуел делать такой длинный ник?"}, session, @timeout}
-    else
-      {:reply, {:ok, name}, %{session | name: name}, @timeout}
+    cond do
+      String.length(name) > 20 ->
+        {:reply, {:error, "ты охуел делать такой длинный ник?"}, session, @timeout}
+
+      String.length(name) == 0 ->
+        {:reply, {:error, "ник не может быть пустым"}, session, @timeout}
+
+      true ->
+        {:reply, {:ok, name}, %{session | name: name}, @timeout}
     end
   end
 
