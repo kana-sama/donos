@@ -20,6 +20,7 @@ defmodule Donos.MixProject do
 
   defp deps do
     [
+      {:exmoji, github: "mroth/exmoji"},
       {:nadia, "~> 0.4.4"},
       {:faker, "~> 0.12"}
     ]
