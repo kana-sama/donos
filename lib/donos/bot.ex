@@ -28,25 +28,7 @@ defmodule Donos.Bot do
 
   @impl GenServer
   def handle_info(:poll, offset) do
-    IO.inspect("handle_info")
-
-    updates =
-      try do
-        Nadia.get_updates(offset: offset, limit: 1, timeout: 100)
-      rescue
-        error ->
-          IO.inspect({"handle_info rescue", error})
-      catch
-        error ->
-          IO.inspect({"handle_info catch", error})
-
-        error1, error2 ->
-          IO.inspect({"handle_info catch2", error1, error2})
-      end
-
-    IO.inspect("handle_info after get_updates")
-
-    case updates do
+    case Nadia.get_updates(offset: offset, limit: 1, timeout: 100) do
       {:ok, [%Update{update_id: update_id} = update | _]} when update_id >= offset ->
         try do
           handle_update(update)
@@ -58,10 +40,6 @@ defmodule Donos.Bot do
         end
 
       {:ok, []} ->
-        return(offset)
-
-      {:error, reason} ->
-        IO.inspect(reason)
         return(offset)
 
       error ->
