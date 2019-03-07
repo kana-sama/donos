@@ -25,3 +25,4 @@ donos-*.tar
 .elixir_ls
 users
 store
+store_*

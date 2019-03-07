@@ -1,13 +1,11 @@
 defmodule Donos.Session do
   use GenServer
 
-  alias Donos.{SessionsRegister, Bot}
+  alias Donos.{SessionsRegister, Bot, Store}
 
   defmodule State do
-    defstruct [:user_id, :name]
+    defstruct [:user_id, :name, :lifetime]
   end
-
-  @timeout Application.get_env(:donos, :session_life)
 
   def start(user_id) do
     GenServer.start(__MODULE__, user_id)
@@ -36,21 +34,30 @@ defmodule Donos.Session do
     GenServer.call(get(user_id), {:set_name, name})
   end
 
+  def get_lifetime(user_id) do
+    GenServer.call(get(user_id), :get_lifetime)
+  end
+
+  def set_lifetime(user_id, lifetime) do
+    GenServer.call(get(user_id), {:set_lifetime, lifetime})
+  end
+
   @impl GenServer
   def init(user_id) do
     name = gen_name()
 
-    SessionsRegister.register(user_id, self())
-    session = %State{user_id: user_id, name: name}
+    user = Store.get_user(user_id)
+    session = %State{user_id: user_id, name: name, lifetime: user.lifetime}
 
     Bot.Logic.local_system_message(user_id, "Твое новое имя: #{name}")
+    SessionsRegister.register(user_id, self())
 
-    {:ok, session, @timeout}
+    {:ok, session, session.lifetime}
   end
 
   @impl GenServer
   def handle_call(:get_name, _, session) do
-    {:reply, session.name, session, @timeout}
+    {:reply, session.name, session, session.lifetime}
   end
 
   @impl GenServer
@@ -59,15 +66,35 @@ defmodule Donos.Session do
 
     cond do
       String.length(name) > 20 ->
-        {:reply, {:error, "ты охуел делать такой длинный ник?"}, session, @timeout}
+        {:reply, {:error, "ты охуел делать такой длинный ник?"}, session, session.lifetime}
 
       String.length(name) == 0 ->
-        {:reply, {:error, "ник не может быть пустым"}, session, @timeout}
+        {:reply, {:error, "ник не может быть пустым"}, session, session.lifetime}
 
       true ->
         emoji = gen_emoji()
         name = "#{emoji} #{name}"
-        {:reply, {:ok, name}, %{session | name: name}, @timeout}
+        {:reply, {:ok, name}, %{session | name: name}, session.lifetime}
+    end
+  end
+
+  @impl GenServer
+  def handle_call(:get_lifetime, _, session) do
+    {:reply, session.lifetime, session, session.lifetime}
+  end
+
+  @impl GenServer
+  def handle_call({:set_lifetime, lifetime}, _, session) do
+    cond do
+      lifetime <= 0 ->
+        {:reply, {:error, "сессия не может длиться так мало"}, session, session.lifetime}
+
+      lifetime > 60 * 24 * 1000 * 60 ->
+        {:reply, {:error, "сессия не может длиться больше суток"}, session, session.lifetime}
+
+      true ->
+        Store.set_user_lifetime(session.user_id, lifetime)
+        {:reply, :ok, %{session | lifetime: lifetime}, lifetime}
     end
   end
 

@@ -74,6 +74,39 @@ defmodule Donos.Bot.Logic do
     send_markdown(message.from.id, {:system, response})
   end
 
+  def handle_post({:command, "getsession"}, message, _reply_to) do
+    lifetime = Session.get_lifetime(message.from.id)
+
+    send_markdown(
+      message.from.id,
+      {:system, "Длина твоей сессии в минутах: #{div(lifetime, 1000 * 60)}"}
+    )
+  end
+
+  def handle_post({:command, "setsession"}, message, _reply_to) do
+    send_markdown(
+      message.from.id,
+      {:system, "Нужно дописать длину сессии (в минутах) после /setsession"}
+    )
+  end
+
+  def handle_post({:command, <<"setsession ", lifetime::binary>>}, message, _reply_to) do
+    response =
+      try do
+        lifetime = lifetime |> String.trim() |> String.to_integer()
+        lifetime = lifetime * 1000 * 60
+
+        case Session.set_lifetime(message.from.id, lifetime) do
+          :ok -> "Твоя новая длина сессии (в минутах): #{div(lifetime, 1000 * 60)}"
+          {:error, reason} -> "Ошибка: #{reason}"
+        end
+      rescue
+        ArgumentError -> "Ошибка: невалидный аргумент"
+      end
+
+    send_markdown(message.from.id, {:system, response})
+  end
+
   def handle_post({:command, command}, message, _reply_to) do
     send_markdown(message.from.id, {:system, "Команда не поддерживается: #{command}"})
   end
@@ -219,7 +252,7 @@ defmodule Donos.Bot.Logic do
     if Application.get_env(:donos, :show_own_messages?) do
       users
     else
-      MapSet.delete(users, current_user_id)
+      Map.delete(users, current_user_id)
     end
   end
 

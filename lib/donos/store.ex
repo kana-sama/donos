@@ -1,12 +1,16 @@
 defmodule Donos.Store do
   use GenServer
 
+  defmodule User do
+    defstruct lifetime: Application.get_env(:donos, :session_lifetime)
+  end
+
   defmodule Message do
     defstruct [:user_name, {:ids, Map.new()}]
   end
 
   defmodule State do
-    defstruct users: MapSet.new(), messages: Map.new()
+    defstruct users: Map.new(), messages: Map.new()
   end
 
   def start_link(_) do
@@ -15,6 +19,10 @@ defmodule Donos.Store do
 
   def get_users() do
     GenServer.call(__MODULE__, :get_users)
+  end
+
+  def get_user(user_id) do
+    GenServer.call(__MODULE__, {:get_user, user_id})
   end
 
   def get_messages(message_id) do
@@ -31,6 +39,10 @@ defmodule Donos.Store do
 
   def put_messages(original_message_id, message_ids) do
     GenServer.cast(__MODULE__, {:put_messages, original_message_id, message_ids})
+  end
+
+  def set_user_lifetime(user_id, lifetime) do
+    GenServer.cast(__MODULE__, {:set_user_lifetime, user_id, lifetime})
   end
 
   @impl GenServer
@@ -51,7 +63,12 @@ defmodule Donos.Store do
 
   @impl GenServer
   def handle_call(:get_users, _, state) do
-    {:reply, state.users, state}
+    {:reply, Map.keys(state.users), state}
+  end
+
+  @impl GenServer
+  def handle_call({:get_user, user_id}, _, state) do
+    {:reply, state.users[user_id], state}
   end
 
   @impl GenServer
@@ -78,7 +95,7 @@ defmodule Donos.Store do
 
   @impl GenServer
   def handle_cast({:put_user, user_id}, state) do
-    state = %{state | users: MapSet.put(state.users, user_id)}
+    state = %{state | users: Map.put(state.users, user_id, %User{})}
     persist(state)
     {:noreply, state}
   end
@@ -86,6 +103,14 @@ defmodule Donos.Store do
   @impl GenServer
   def handle_cast({:put_messages, original_message_id, message_ids}, state) do
     state = %{state | messages: Map.put(state.messages, original_message_id, message_ids)}
+    persist(state)
+    {:noreply, state}
+  end
+
+  @impl GenServer
+  def handle_cast({:set_user_lifetime, user_id, lifetime}, state) do
+    users = Map.update(state.users, user_id, %User{}, fn user -> %{user | lifetime: lifetime} end)
+    state = %{state | users: users}
     persist(state)
     {:noreply, state}
   end
