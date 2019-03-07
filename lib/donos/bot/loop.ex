@@ -52,36 +52,43 @@ defmodule Donos.Bot.Loop do
     Logic.post({:text, text}, message)
   end
 
-  defp handle_update(%Update{message: %Message{audio: %Audio{}} = message}) do
-    Logic.post({:audio, message.audio.file_id}, message)
+  defp handle_update(%Update{message: %Message{audio: %Audio{file_id: file_id}} = message}) do
+    Logic.post({:audio, file_id}, message)
   end
 
-  defp handle_update(%Update{message: %Message{document: %Document{}} = message}) do
-    Logic.post({:document, message.document.file_id}, message)
+  defp handle_update(%Update{message: %Message{document: %Document{file_id: file_id}} = message}) do
+    Logic.post({:document, file_id}, message)
   end
 
-  defp handle_update(%Update{message: %Message{photo: [_ | _]} = message}) do
-    Logic.post({:photo, Enum.at(message.photo, -1).file_id}, message)
+  defp handle_update(%Update{message: %Message{photo: [_ | _] = photos} = message}) do
+    Logic.post({:photo, Enum.at(photos, -1).file_id}, message)
   end
 
-  defp handle_update(%Update{message: %Message{sticker: %Sticker{}} = message}) do
-    Logic.post({:sticker, message.sticker.file_id}, message)
+  defp handle_update(%Update{message: %Message{sticker: %Sticker{file_id: file_id}} = message}) do
+    Logic.post({:sticker, file_id}, message)
   end
 
-  defp handle_update(%Update{message: %Message{video: %Video{}} = message}) do
-    Logic.post({:video, message.video.file_id}, message)
+  defp handle_update(%Update{message: %Message{video: %Video{file_id: file_id}} = message}) do
+    Logic.post({:video, file_id}, message)
   end
 
-  defp handle_update(%Update{message: %Message{voice: %Voice{}} = message}) do
-    Logic.post({:voice, message.voice.file_id}, message)
+  defp handle_update(%Update{message: %Message{voice: %Voice{file_id: file_id}} = message}) do
+    Logic.post({:voice, file_id}, message)
   end
 
-  defp handle_update(%Update{message: %Message{contact: %Contact{}} = message}) do
-    Logic.post({:contact, message.contact.phone_number, message.contact.first_name}, message)
+  defp handle_update(%Update{
+         message:
+           %Message{contact: %Contact{phone_number: phone_number, first_name: first_name}} =
+             message
+       }) do
+    Logic.post({:contact, phone_number, first_name}, message)
   end
 
-  defp handle_update(%Update{message: %Message{location: %Location{}} = message}) do
-    Logic.post({:location, message.location.latitude, message.location.longitude}, message)
+  defp handle_update(%Update{
+         message:
+           %Message{location: %Location{latitude: latitude, longitude: longitude}} = message
+       }) do
+    Logic.post({:location, latitude, longitude}, message)
   end
 
   defp handle_update(%Update{edited_message: %{text: text} = message}) when is_binary(text) do
