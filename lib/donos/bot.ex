@@ -23,7 +23,7 @@ defmodule Donos.Bot do
 
   @impl GenServer
   def handle_cast({:system_message, user_id, message}, offset) do
-    send_markdown(user_id, {:system, message})
+    send_message(user_id, {:system, message})
     {:noreply, offset}
   end
 
@@ -76,11 +76,11 @@ defmodule Donos.Bot do
     Session.get(message.from.id)
 
     response = "Привет анон, это анонимный чат"
-    send_markdown(message.from.id, {:system, response})
+    send_message(message.from.id, {:system, response})
   end
 
   defp handle_message(%{text: "/ping"} = message) do
-    send_markdown(message.from.id, {:system, "pong"})
+    send_message(message.from.id, {:system, "pong"})
   end
 
   defp handle_message(%{text: "/relogin"} = message) do
@@ -90,7 +90,7 @@ defmodule Donos.Bot do
 
   defp handle_message(%{text: "/setname"} = message) do
     response = "Синтаксис: /setname %new_name%"
-    send_markdown(message.from.id, {:system, response})
+    send_message(message.from.id, {:system, response})
   end
 
   defp handle_message(%{text: <<"/setname ", name::binary>>} = message) do
@@ -100,18 +100,18 @@ defmodule Donos.Bot do
         {:error, reason} -> "Ошибка: #{reason}"
       end
 
-    send_markdown(message.from.id, {:system, response})
+    send_message(message.from.id, {:system, response})
   end
 
   defp handle_message(%{text: "/getsession"} = message) do
     lifetime = Session.get_lifetime(message.from.id)
     response = "Длина твоей сессии в минутах: #{div(lifetime, 1000 * 60)}"
-    send_markdown(message.from.id, {:system, response})
+    send_message(message.from.id, {:system, response})
   end
 
   defp handle_message(%{text: "/setsession"} = message) do
     response = "Нужно дописать длину сессии (в минутах) после /setsession"
-    send_markdown(message.from.id, {:system, response})
+    send_message(message.from.id, {:system, response})
   end
 
   defp handle_message(%{text: <<"/setsession ", lifetime::binary>>} = message) do
@@ -128,25 +128,23 @@ defmodule Donos.Bot do
         ArgumentError -> "Ошибка: невалидный аргумент"
       end
 
-    send_markdown(message.from.id, {:system, response})
+    send_message(message.from.id, {:system, response})
   end
 
   defp handle_message(%{text: <<"/", command::binary>>} = message) do
     response = "Команда не поддерживается: #{command}"
-    send_markdown(message.from.id, {:system, response})
+    send_message(message.from.id, {:system, response})
   end
 
   defp handle_message(%{text: text} = message) when is_binary(text) do
     broadcast_content(message, fn user_id, name ->
-      send_markdown(user_id, {:post, name, text},
-        reply_to: get_message_for_reply(message, user_id)
-      )
+      send_message(user_id, {:post, name, text}, reply_to: get_message_for_reply(message, user_id))
     end)
   end
 
   defp handle_message(%{audio: %Audio{file_id: file_id}} = message) do
     broadcast_content(message, fn user_id, name ->
-      send_markdown(user_id, {:announce, name, "аудио"})
+      send_message(user_id, {:announce, name, "аудио"})
 
       Nadia.send_audio(user_id, file_id,
         caption: message.caption,
@@ -157,7 +155,7 @@ defmodule Donos.Bot do
 
   defp handle_message(%{document: %Document{file_id: file_id}} = message) do
     broadcast_content(message, fn user_id, name ->
-      send_markdown(user_id, {:announce, name, "файл"})
+      send_message(user_id, {:announce, name, "файл"})
 
       Nadia.send_document(user_id, file_id,
         caption: message.caption,
@@ -170,7 +168,7 @@ defmodule Donos.Bot do
     file_id = Enum.at(photos, -1).file_id
 
     broadcast_content(message, fn user_id, name ->
-      send_markdown(user_id, {:announce, name, "пикчу"})
+      send_message(user_id, {:announce, name, "пикчу"})
 
       Nadia.send_photo(user_id, file_id,
         caption: message.caption,
@@ -181,14 +179,14 @@ defmodule Donos.Bot do
 
   defp handle_message(%{sticker: %Sticker{file_id: file_id}} = message) do
     broadcast_content(message, fn user_id, name ->
-      send_markdown(user_id, {:announce, name, "стикер"})
+      send_message(user_id, {:announce, name, "стикер"})
       Nadia.send_sticker(user_id, file_id, reply_to: get_message_for_reply(message, user_id))
     end)
   end
 
   defp handle_message(%{video: %Video{file_id: file_id}} = message) do
     broadcast_content(message, fn user_id, name ->
-      send_markdown(user_id, {:announce, name, "видео"})
+      send_message(user_id, {:announce, name, "видео"})
 
       Nadia.send_video(user_id, file_id,
         caption: message.caption,
@@ -199,7 +197,7 @@ defmodule Donos.Bot do
 
   defp handle_message(%{voice: %Voice{file_id: file_id}} = message) do
     broadcast_content(message, fn user_id, name ->
-      send_markdown(user_id, {:announce, name, "голосовое сообщение"})
+      send_message(user_id, {:announce, name, "голосовое сообщение"})
 
       Nadia.send_voice(user_id, file_id,
         caption: message.caption,
@@ -210,7 +208,7 @@ defmodule Donos.Bot do
 
   defp handle_message(%{contact: %Contact{} = contact} = message) do
     broadcast_content(message, fn user_id, name ->
-      send_markdown(user_id, {:announce, name, "контакт"})
+      send_message(user_id, {:announce, name, "контакт"})
 
       Nadia.send_contact(user_id, contact.phone_number, contact.first_name,
         last_name: contact.last_name,
@@ -222,7 +220,7 @@ defmodule Donos.Bot do
 
   defp handle_message(%{location: %Location{latitude: latitude, longitude: longitude}} = message) do
     broadcast_content(message, fn user_id, name ->
-      send_markdown(user_id, {:announce, name, "местоположение"})
+      send_message(user_id, {:announce, name, "местоположение"})
 
       Nadia.send_location(user_id, latitude, longitude,
         caption: message.caption,
@@ -288,7 +286,7 @@ defmodule Donos.Bot do
     end
   end
 
-  defp send_markdown(chat_id, message, options \\ []) do
+  defp send_message(chat_id, message, options \\ []) do
     Nadia.send_message(chat_id, format_message(message),
       reply_to_message_id: options[:reply_to],
       parse_mode: "markdown"
