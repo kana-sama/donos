@@ -61,7 +61,7 @@ defmodule Donos.Bot.Loop do
   end
 
   defp handle_update(%Update{message: %Message{photo: [_ | _]} = message}) do
-    Logic.post({:photo, Enum.at(message.photos, -1).file_id}, message)
+    Logic.post({:photo, Enum.at(message.photo, -1).file_id}, message)
   end
 
   defp handle_update(%Update{message: %Message{sticker: %Sticker{}} = message}) do
