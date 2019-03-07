@@ -252,7 +252,7 @@ defmodule Donos.Bot.Logic do
     if Application.get_env(:donos, :show_own_messages?) do
       users
     else
-      Map.delete(users, current_user_id)
+      MapSet.delete(users, current_user_id)
     end
   end
 

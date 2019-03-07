@@ -63,7 +63,7 @@ defmodule Donos.Store do
 
   @impl GenServer
   def handle_call(:get_users, _, state) do
-    {:reply, Map.keys(state.users), state}
+    {:reply, MapSet.new(Map.keys(state.users)), state}
   end
 
   @impl GenServer
