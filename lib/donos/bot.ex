@@ -131,6 +131,12 @@ defmodule Donos.Bot do
     send_message(message.from.id, {:system, response})
   end
 
+  defp handle_message(%{text: "/whoami"} = message) do
+    name = Session.get_name(message.from.id)
+    response = "Твое имя: #{name}"
+    send_message(message.from.id, {:system, response})
+  end
+
   defp handle_message(%{text: <<"/", command::binary>>} = message) do
     response = "Команда не поддерживается: #{command}"
     send_message(message.from.id, {:system, response})

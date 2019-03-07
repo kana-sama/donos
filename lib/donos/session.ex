@@ -44,7 +44,7 @@ defmodule Donos.Session do
 
   @impl GenServer
   def init(user_id) do
-    name = gen_name()
+    name = gen_name() |> render_name()
 
     lifetime =
       case Store.get_user(user_id) do
@@ -77,8 +77,7 @@ defmodule Donos.Session do
         {:reply, {:error, "ник не может быть пустым"}, session, session.lifetime}
 
       true ->
-        emoji = gen_emoji()
-        name = "#{emoji} #{name}"
+        name = render_name(name)
         {:reply, {:ok, name}, %{session | name: name}, session.lifetime}
     end
   end
@@ -119,7 +118,10 @@ defmodule Donos.Session do
   end
 
   defp gen_name do
-    name = Faker.Pokemon.name()
+    File.read!("res/names.txt") |> String.split() |> Enum.random()
+  end
+
+  defp render_name(name) do
     emoji = gen_emoji()
     "#{emoji} #{name}"
   end
