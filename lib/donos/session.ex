@@ -48,8 +48,11 @@ defmodule Donos.Session do
 
     lifetime =
       case Store.get_user(user_id) do
-        %Store.User{lifetime: lifetime} -> lifetime
-        _ -> Application.get_env(:donos, :session_lifetime)
+        %Store.User{lifetime: lifetime} ->
+          lifetime
+
+        _ ->
+          Application.get_env(:donos, :session_lifetime)
       end
 
     session = %State{user_id: user_id, name: name, lifetime: lifetime}

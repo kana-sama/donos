@@ -12,19 +12,13 @@ defmodule Donos.Bot do
   end
 
   def system_message(user_id, message) do
-    GenServer.cast(__MODULE__, {:system_message, user_id, message})
+    send_message(user_id, {:system, message})
   end
 
   @impl GenServer
   def init(:none) do
     schedule_polling()
     {:ok, 0}
-  end
-
-  @impl GenServer
-  def handle_cast({:system_message, user_id, message}, offset) do
-    send_message(user_id, {:system, message})
-    {:noreply, offset}
   end
 
   defp return(offset) do
@@ -34,7 +28,25 @@ defmodule Donos.Bot do
 
   @impl GenServer
   def handle_info(:poll, offset) do
-    case Nadia.get_updates(offset: offset, limit: 1, timeout: 100) do
+    IO.inspect("handle_info")
+
+    updates =
+      try do
+        Nadia.get_updates(offset: offset, limit: 1, timeout: 100)
+      rescue
+        error ->
+          IO.inspect({"handle_info rescue", error})
+      catch
+        error ->
+          IO.inspect({"handle_info catch", error})
+
+        error1, error2 ->
+          IO.inspect({"handle_info catch2", error1, error2})
+      end
+
+    IO.inspect("handle_info after get_updates")
+
+    case updates do
       {:ok, [%Update{update_id: update_id} = update | _]} when update_id >= offset ->
         try do
           handle_update(update)
@@ -258,6 +270,7 @@ defmodule Donos.Bot do
   end
 
   defp schedule_polling() do
+    IO.inspect("schedule_polling")
     Process.send_after(self(), :poll, @delay)
   end
 
@@ -271,7 +284,7 @@ defmodule Donos.Bot do
           {:ok, new_message} ->
             Map.put(message_ids, user_id, new_message.message_id)
 
-          {:error, _error} ->
+          _ ->
             message_ids
         end
       end)
@@ -296,11 +309,11 @@ defmodule Donos.Bot do
     end
   end
 
-  defp send_message(chat_id, message, options \\ []) do
-    Nadia.send_message(chat_id, format_message(message),
-      reply_to_message_id: options[:reply_to],
-      parse_mode: "markdown"
-    )
+  def send_message(chat_id, message, options \\ []) do
+    # Nadia.send_message(chat_id, format_message(message),
+    #   reply_to_message_id: options[:reply_to],
+    #   parse_mode: "markdown"
+    # )
   end
 
   defp format_message({:system, text}) do
@@ -326,5 +339,10 @@ defmodule Donos.Bot do
     else
       _ -> nil
     end
+  end
+
+  @impl GenServer
+  def terminate(reason, state) do
+    IO.inspect({:terminate, reason, state})
   end
 end

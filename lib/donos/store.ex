@@ -52,7 +52,7 @@ defmodule Donos.Store do
         {:ok, content} ->
           :erlang.binary_to_term(content)
 
-        {:error, _} ->
+        _ ->
           new_state = %State{}
           persist(new_state)
           new_state
