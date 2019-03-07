@@ -49,7 +49,7 @@ defmodule Donos.Session do
     user = Store.get_user(user_id)
     session = %State{user_id: user_id, name: name, lifetime: user.lifetime}
 
-    Bot.Logic.local_system_message(user_id, "Твое новое имя: #{name}")
+    Bot.system_message(user_id, "Твое новое имя: #{name}")
     SessionsRegister.register(user_id, self())
 
     {:ok, session, session.lifetime}
@@ -106,7 +106,7 @@ defmodule Donos.Session do
   @impl GenServer
   def terminate(_reason, session) do
     SessionsRegister.unregister(session.user_id)
-    Bot.Logic.local_system_message(session.user_id, "Твоя сессия закончилась")
+    Bot.system_message(session.user_id, "Твоя сессия закончилась")
   end
 
   defp gen_emoji do
