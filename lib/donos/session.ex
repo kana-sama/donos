@@ -46,8 +46,13 @@ defmodule Donos.Session do
   def init(user_id) do
     name = gen_name()
 
-    user = Store.get_user(user_id)
-    session = %State{user_id: user_id, name: name, lifetime: user.lifetime}
+    lifetime =
+      case Store.get_user(user_id) do
+        %Store.User{lifetime: lifetime} -> lifetime
+        _ -> Application.get_env(:donos, :session_lifetime)
+      end
+
+    session = %State{user_id: user_id, name: name, lifetime: lifetime}
 
     Bot.system_message(user_id, "Твое новое имя: #{name}")
     SessionsRegister.register(user_id, self())
