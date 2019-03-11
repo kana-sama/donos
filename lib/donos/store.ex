@@ -56,13 +56,11 @@ defmodule Donos.Store do
           :erlang.binary_to_term(content)
 
         _ ->
-          new_state = %State{}
-          persist(new_state)
-          new_state
+          %State{}
       end
 
     schedule_garbage_collector()
-    {:ok, state}
+    {:ok, state, {:continue, :persist}}
   end
 
   @impl GenServer
@@ -105,31 +103,28 @@ defmodule Donos.Store do
 
   @impl GenServer
   def handle_cast({:put_user, user_id}, state) do
-    state = %{state | users: Map.put(state.users, user_id, %User{})}
-    persist(state)
-    {:noreply, state}
+    user = %User{}
+
+    state = put_in(state.users[user_id], user)
+    {:noreply, state, {:continue, :persist}}
   end
 
   @impl GenServer
   def handle_cast({:put_message, message_id, user_name, related}, state) do
-    messages =
-      Map.put(state.messages, message_id, %Message{
-        user_name: user_name,
-        posted_at: DateTime.utc_now(),
-        related: related
-      })
+    message = %Message{
+      user_name: user_name,
+      posted_at: DateTime.utc_now(),
+      related: related
+    }
 
-    state = %{state | messages: messages}
-    persist(state)
-    {:noreply, state}
+    state = put_in(state.messages[message_id], message)
+    {:noreply, state, {:continue, :persist}}
   end
 
   @impl GenServer
   def handle_cast({:set_user_lifetime, user_id, lifetime}, state) do
-    users = Map.update(state.users, user_id, %User{}, fn user -> %{user | lifetime: lifetime} end)
-    state = %{state | users: users}
-    persist(state)
-    {:noreply, state}
+    state = put_in(state.users[user_id].lifetime, lifetime)
+    {:noreply, state, {:continue, :persist}}
   end
 
   @impl GenServer
@@ -143,18 +138,18 @@ defmodule Donos.Store do
 
     state = %{state | messages: messages}
 
-    persist(state)
-
     schedule_garbage_collector()
+    {:noreply, state, {:continue, :persist}}
+  end
+
+  @impl GenServer
+  def handle_continue(:persist, state) do
+    File.write("store", :erlang.term_to_binary(state))
     {:noreply, state}
   end
 
   defp old_message?(now, {_message_id, message}) do
     DateTime.diff(now, message.posted_at) > @garbage_collector_duration
-  end
-
-  defp persist(state) do
-    File.write("store", :erlang.term_to_binary(state))
   end
 
   defp schedule_garbage_collector() do
