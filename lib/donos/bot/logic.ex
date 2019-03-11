@@ -5,15 +5,10 @@ defmodule Donos.Bot.Logic do
   alias Nadia.Model.{Update, Message}
   alias Nadia.Model.{Audio, Document, Sticker, Video, Voice, Contact, Location}
 
+  import Donos.Bot.Util
+
   def start_link(_) do
     GenServer.start_link(__MODULE__, :none, name: __MODULE__)
-  end
-
-  def send_message(chat_id, message, options \\ []) do
-    Nadia.send_message(chat_id, format_message(message),
-      reply_to_message_id: options[:reply_to],
-      parse_mode: "markdown"
-    )
   end
 
   def handle(update) do
@@ -43,8 +38,13 @@ defmodule Donos.Bot.Logic do
     {:noreply, :none}
   end
 
+  @impl GenServer
+  def handle_info({:ssl_closed, _}, offset) do
+    {:noreply, offset}
+  end
+
   defp handle_message(%{text: "/start"} = message) do
-    Store.put_user(message.from.id)
+    Store.User.put(message.from.id)
     Session.get(message.from.id)
 
     response = "Привет анон, это анонимный чат"
@@ -77,7 +77,7 @@ defmodule Donos.Bot.Logic do
 
   defp handle_message(%{text: "/getsession"} = message) do
     lifetime = Session.get_lifetime(message.from.id)
-    response = "Длина твоей сессии в минутах: #{div(lifetime, 1000 * 60)}"
+    response = "Длина твоей сессии в минутах: #{Duration.to(:minutes, lifetime)}"
     send_message(message.from.id, {:system, response})
   end
 
@@ -90,11 +90,14 @@ defmodule Donos.Bot.Logic do
     response =
       try do
         lifetime = lifetime |> String.trim() |> String.to_integer()
-        lifetime = lifetime * 1000 * 60
+        lifetime = Duration.from(:minutes, lifetime)
 
         case Session.set_lifetime(message.from.id, lifetime) do
-          :ok -> "Твоя новая длина сессии (в минутах): #{div(lifetime, 1000 * 60)}"
-          {:error, reason} -> "Ошибка: #{reason}"
+          :ok ->
+            "Твоя новая длина сессии (в минутах): #{Duration.to(:minutes, lifetime)}"
+
+          {:error, reason} ->
+            "Ошибка: #{reason}"
         end
       rescue
         ArgumentError -> "Ошибка: невалидный аргумент"
@@ -212,76 +215,20 @@ defmodule Donos.Bot.Logic do
   end
 
   defp handle_edited_message(%{text: text} = message) when is_binary(text) do
-    with {:ok, %Store.Message{} = stored_message} <- Store.get_messages(message.message_id) do
+    with {:ok, %Store.Message{} = stored_message} <- Store.Message.get(message.message_id) do
       text = format_message({:edit, stored_message.user_name, text})
 
-      for {user_id, related_message_id} <- stored_message.ids do
+      for {user_id, related_message_id} <- stored_message.related do
         Nadia.edit_message_text(user_id, related_message_id, "", text, parse_mode: "markdown")
       end
+    else
+      :error ->
+        response = "Это сообщение уже нельзя редактировать"
+        send_message(message.from.id, {:system, response})
     end
   end
 
   defp handle_edited_message(message) do
     IO.inspect({:unkown_edited_message, message})
-  end
-
-  defp broadcast_content(message, action) do
-    name = Session.get_name(message.from.id)
-
-    message_ids =
-      users_to_broadcast(message.from.id)
-      |> Enum.reduce(Map.new(), fn user_id, message_ids ->
-        case action.(user_id, name) do
-          {:ok, new_message} ->
-            Map.put(message_ids, user_id, new_message.message_id)
-
-          _ ->
-            message_ids
-        end
-      end)
-
-    message_ids =
-      if Application.get_env(:donos, :show_own_messages?) do
-        message_ids
-      else
-        Map.put(message_ids, message.from.id, message.message_id)
-      end
-
-    Store.put_messages(message.message_id, %Store.Message{user_name: name, ids: message_ids})
-  end
-
-  defp users_to_broadcast(current_user_id) do
-    users = Store.get_users()
-
-    if Application.get_env(:donos, :show_own_messages?) do
-      users
-    else
-      MapSet.delete(users, current_user_id)
-    end
-  end
-
-  defp format_message({:system, text}) do
-    "_#{text}_"
-  end
-
-  defp format_message({:post, name, text}) do
-    "*#{name}*\n#{text}"
-  end
-
-  defp format_message({:edit, name, text}) do
-    "*#{name}* _(ред.)_\n#{text}"
-  end
-
-  defp format_message({:announce, name, media}) do
-    "*#{name}* отправил #{media}"
-  end
-
-  defp get_message_for_reply(message, user_id) do
-    with %{message_id: reply_to} <- message.reply_to_message,
-         {:ok, %Store.Message{ids: ids}} <- Store.get_message_by_local(message.from.id, reply_to) do
-      ids[user_id]
-    else
-      _ -> nil
-    end
   end
 end

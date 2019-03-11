@@ -47,7 +47,7 @@ defmodule Donos.Session do
     name = gen_name() |> render_name()
 
     lifetime =
-      case Store.get_user(user_id) do
+      case Store.User.get(user_id) do
         %Store.User{lifetime: lifetime} ->
           lifetime
 
@@ -96,11 +96,11 @@ defmodule Donos.Session do
       lifetime <= 0 ->
         {:reply, {:error, "сессия не может длиться так мало"}, session, session.lifetime}
 
-      lifetime > 60 * 24 * 1000 * 60 ->
+      lifetime > Duration.from(:days, 2) ->
         {:reply, {:error, "сессия не может длиться больше суток"}, session, session.lifetime}
 
       true ->
-        Store.set_user_lifetime(session.user_id, lifetime)
+        Store.User.set_lifetime(session.user_id, lifetime)
         {:reply, :ok, %{session | lifetime: lifetime}, lifetime}
     end
   end

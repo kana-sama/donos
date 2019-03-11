@@ -1,12 +1,43 @@
 defmodule Donos.Store do
   use GenServer
 
+  @garbage_collector_duration Duration.from(:days, 1)
+  @garbage_collector_interval Duration.from(:minutes, 10)
+
   defmodule User do
     defstruct lifetime: Application.get_env(:donos, :session_lifetime)
+
+    def ids() do
+      GenServer.call(Donos.Store, :get_user_ids)
+    end
+
+    def get(user_id) do
+      GenServer.call(Donos.Store, {:get_user, user_id})
+    end
+
+    def put(user_id) do
+      GenServer.cast(Donos.Store, {:put_user, user_id})
+    end
+
+    def set_lifetime(user_id, lifetime) do
+      GenServer.cast(Donos.Store, {:set_user_lifetime, user_id, lifetime})
+    end
   end
 
   defmodule Message do
-    defstruct [:user_name, {:ids, Map.new()}]
+    defstruct [:user_name, :posted_at, {:related, Map.new()}]
+
+    def get(message_id) do
+      GenServer.call(Donos.Store, {:get_message, message_id})
+    end
+
+    def get_by_related(user_id, related_message_id) do
+      GenServer.call(Donos.Store, {:get_message_by_related, user_id, related_message_id})
+    end
+
+    def put(message_id, user_name, related) do
+      GenServer.cast(Donos.Store, {:put_message, message_id, user_name, related})
+    end
   end
 
   defmodule State do
@@ -15,34 +46,6 @@ defmodule Donos.Store do
 
   def start_link(_) do
     GenServer.start_link(__MODULE__, :none, name: __MODULE__)
-  end
-
-  def get_users() do
-    GenServer.call(__MODULE__, :get_users)
-  end
-
-  def get_user(user_id) do
-    GenServer.call(__MODULE__, {:get_user, user_id})
-  end
-
-  def get_messages(message_id) do
-    GenServer.call(__MODULE__, {:get_messages, message_id})
-  end
-
-  def get_message_by_local(user_id, message_id) do
-    GenServer.call(__MODULE__, {:get_message_by_local, user_id, message_id})
-  end
-
-  def put_user(user_id) do
-    GenServer.cast(__MODULE__, {:put_user, user_id})
-  end
-
-  def put_messages(original_message_id, message_ids) do
-    GenServer.cast(__MODULE__, {:put_messages, original_message_id, message_ids})
-  end
-
-  def set_user_lifetime(user_id, lifetime) do
-    GenServer.cast(__MODULE__, {:set_user_lifetime, user_id, lifetime})
   end
 
   @impl GenServer
@@ -58,11 +61,12 @@ defmodule Donos.Store do
           new_state
       end
 
+    schedule_garbage_collector()
     {:ok, state}
   end
 
   @impl GenServer
-  def handle_call(:get_users, _, state) do
+  def handle_call(:get_user_ids, _, state) do
     {:reply, MapSet.new(Map.keys(state.users)), state}
   end
 
@@ -72,25 +76,31 @@ defmodule Donos.Store do
   end
 
   @impl GenServer
-  def handle_call({:get_messages, message_id}, _, state) do
+  def handle_call({:get_message, message_id}, _, state) do
     {:reply, Map.fetch(state.messages, message_id), state}
   end
 
   @impl GenServer
-  def handle_call({:get_message_by_local, user_id, message_id}, _, state) do
-    case Enum.find(state.messages, fn
-           {_original, %Message{ids: ids}} ->
-             ids[user_id] == message_id
+  def handle_call({:get_message_by_related, user_id, related_message_id}, _, state) do
+    message =
+      Enum.find(state.messages, fn
+        {_message_id, %Message{related: related}} ->
+          related[user_id] == related_message_id
 
-           _ ->
-             nil
-         end) do
-      nil ->
-        {:reply, :error, state}
+        _ ->
+          nil
+      end)
 
-      {_original_message_id, message} ->
-        {:reply, {:ok, message}, state}
-    end
+    reply =
+      case message do
+        {_message_id, message} ->
+          {:ok, message}
+
+        nil ->
+          :error
+      end
+
+    {:reply, reply, state}
   end
 
   @impl GenServer
@@ -101,8 +111,15 @@ defmodule Donos.Store do
   end
 
   @impl GenServer
-  def handle_cast({:put_messages, original_message_id, message_ids}, state) do
-    state = %{state | messages: Map.put(state.messages, original_message_id, message_ids)}
+  def handle_cast({:put_message, message_id, user_name, related}, state) do
+    messages =
+      Map.put(state.messages, message_id, %Message{
+        user_name: user_name,
+        posted_at: DateTime.utc_now(),
+        related: related
+      })
+
+    state = %{state | messages: messages}
     persist(state)
     {:noreply, state}
   end
@@ -115,7 +132,32 @@ defmodule Donos.Store do
     {:noreply, state}
   end
 
+  @impl GenServer
+  def handle_info(:collect_garbage, state) do
+    now = DateTime.utc_now()
+
+    messages =
+      state.messages
+      |> Enum.filter(&old_message?(now, &1))
+      |> Enum.into(Map.new())
+
+    state = %{state | messages: messages}
+
+    persist(state)
+
+    schedule_garbage_collector()
+    {:noreply, state}
+  end
+
+  defp old_message?(now, {_message_id, message}) do
+    DateTime.diff(now, message.posted_at) > @garbage_collector_duration
+  end
+
   defp persist(state) do
     File.write("store", :erlang.term_to_binary(state))
+  end
+
+  defp schedule_garbage_collector() do
+    Process.send_after(self(), :collect_garbage, @garbage_collector_interval)
   end
 end
