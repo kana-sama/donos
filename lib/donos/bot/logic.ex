@@ -100,7 +100,8 @@ defmodule Donos.Bot.Logic do
             "Ошибка: #{reason}"
         end
       rescue
-        ArgumentError -> "Ошибка: невалидный аргумент"
+        ArgumentError ->
+          "Ошибка: невалидный аргумент"
       end
 
     send_message(message.from.id, {:system, response})

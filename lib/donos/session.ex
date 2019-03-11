@@ -1,7 +1,7 @@
 defmodule Donos.Session do
   use GenServer
 
-  alias Donos.{SessionsRegister, Bot, Store}
+  alias Donos.{SessionsRegister, NamesRegister, Bot, Store}
 
   defmodule State do
     defstruct [:user_id, :name, :lifetime]
@@ -121,7 +121,7 @@ defmodule Donos.Session do
   end
 
   defp gen_name do
-    File.read!("res/names.txt") |> String.split() |> Enum.random()
+    NamesRegister.new_name()
   end
 
   defp render_name(name) do

@@ -12,7 +12,7 @@ defmodule Donos.Bot.Util do
     name = Session.get_name(message.from.id)
 
     related =
-      users_to_broadcast(message.from.id)
+      users_for_broadcast(message.from.id)
       |> Enum.reduce(Map.new(), fn user_id, message_ids ->
         case action.(user_id, name) do
           {:ok, new_message} ->
@@ -31,16 +31,6 @@ defmodule Donos.Bot.Util do
       end
 
     Store.Message.put(message.message_id, name, related)
-  end
-
-  def users_to_broadcast(current_user_id) do
-    users = Store.User.ids()
-
-    if Application.get_env(:donos, :show_own_messages?) do
-      users
-    else
-      MapSet.delete(users, current_user_id)
-    end
   end
 
   def format_message({:system, text}) do
@@ -66,6 +56,16 @@ defmodule Donos.Bot.Util do
       related[user_id]
     else
       _ -> nil
+    end
+  end
+
+  defp users_for_broadcast(current_user_id) do
+    users = Store.User.ids()
+
+    if Application.get_env(:donos, :show_own_messages?) do
+      users
+    else
+      MapSet.delete(users, current_user_id)
     end
   end
 end

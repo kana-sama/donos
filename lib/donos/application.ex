@@ -4,6 +4,7 @@ defmodule Donos.Application do
   def start(_type, _args) do
     children = [
       Donos.Store,
+      Donos.NamesRegister,
       Donos.SessionsRegister,
       Donos.Bot
     ]
