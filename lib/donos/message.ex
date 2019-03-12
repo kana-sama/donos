@@ -25,7 +25,8 @@ defmodule Donos.Message do
 
   def escape(text) do
     Enum.reduce(@chars_to_escape, text, fn char, text ->
-      String.replace(text, ~r/(?<!\\)#{"\\"}#{char}/, "\\#{char}")
+      # String.replace(text, ~r/(?<!\\)#{"\\"}#{char}/, "\\#{char}")
+      String.replace(text, char, "\\" <> char)
     end)
   end
 
