@@ -1,8 +1,8 @@
 use Mix.Config
 
 config :donos,
-  show_own_messages?: false,
-  session_lifetime: 1000 * 60 * 30
+  session_lifetime: 1000 * 60 * 30,
+  history_channel: System.get_env("DONOS_HISTORY")
 
 config :nadia,
   token: System.get_env("DONOS_TOKEN")
