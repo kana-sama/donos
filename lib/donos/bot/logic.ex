@@ -104,6 +104,8 @@ defmodule Donos.Bot.Logic do
   end
 
   defp handle_message(%{text: text} = message) when is_binary(text) do
+    text = Donos.Message.transform(text, message.entities)
+
     broadcast_content(message, fn user_id, name ->
       send_message(user_id, {:post, name, text}, reply_to: get_message_for_reply(message, user_id))
     end)
@@ -114,7 +116,7 @@ defmodule Donos.Bot.Logic do
       send_message(user_id, {:announce, name, "аудио"})
 
       Nadia.send_audio(user_id, file_id,
-        caption: message.caption,
+        caption: Donos.Message.transform(message.caption, message.entities),
         reply_to: get_message_for_reply(message, user_id)
       )
     end)
@@ -125,7 +127,7 @@ defmodule Donos.Bot.Logic do
       send_message(user_id, {:announce, name, "файл"})
 
       Nadia.send_document(user_id, file_id,
-        caption: message.caption,
+        caption: Donos.Message.transform(message.caption, message.entities),
         reply_to: get_message_for_reply(message, user_id)
       )
     end)
@@ -138,7 +140,7 @@ defmodule Donos.Bot.Logic do
       send_message(user_id, {:announce, name, "пикчу"})
 
       Nadia.send_photo(user_id, file_id,
-        caption: message.caption,
+        caption: Donos.Message.transform(message.caption, message.entities),
         reply_to: get_message_for_reply(message, user_id)
       )
     end)
@@ -156,7 +158,7 @@ defmodule Donos.Bot.Logic do
       send_message(user_id, {:announce, name, "видео"})
 
       Nadia.send_video(user_id, file_id,
-        caption: message.caption,
+        caption: Donos.Message.transform(message.caption, message.entities),
         reply_to: get_message_for_reply(message, user_id)
       )
     end)
@@ -167,7 +169,7 @@ defmodule Donos.Bot.Logic do
       send_message(user_id, {:announce, name, "голосовое сообщение"})
 
       Nadia.send_voice(user_id, file_id,
-        caption: message.caption,
+        caption: Donos.Message.transform(message.caption, message.entities),
         reply_to: get_message_for_reply(message, user_id)
       )
     end)
@@ -179,7 +181,7 @@ defmodule Donos.Bot.Logic do
 
       Nadia.send_contact(user_id, contact.phone_number, contact.first_name,
         last_name: contact.last_name,
-        caption: message.caption,
+        caption: Donos.Message.transform(message.caption, message.entities),
         reply_to: get_message_for_reply(message, user_id)
       )
     end)
@@ -190,7 +192,7 @@ defmodule Donos.Bot.Logic do
       send_message(user_id, {:announce, name, "местоположение"})
 
       Nadia.send_location(user_id, latitude, longitude,
-        caption: message.caption,
+        caption: Donos.Message.transform(message.caption, message.entities),
         reply_to: get_message_for_reply(message, user_id)
       )
     end)
@@ -201,6 +203,8 @@ defmodule Donos.Bot.Logic do
   end
 
   defp handle_edited_message(%{text: text} = message) when is_binary(text) do
+    text = Donos.Message.transform(text, message.entities)
+
     with {:ok, %Store.Message{} = stored_message} <- Store.Message.get(message.message_id) do
       text = format_message({:edit, stored_message.user_name, text})
 
