@@ -30,10 +30,6 @@ defmodule Donos.Session do
     GenServer.call(get(user_id), :get_name)
   end
 
-  def set_name(user_id, name) do
-    GenServer.call(get(user_id), {:set_name, name})
-  end
-
   def get_lifetime(user_id) do
     GenServer.call(get(user_id), :get_lifetime)
   end
@@ -44,7 +40,7 @@ defmodule Donos.Session do
 
   @impl GenServer
   def init(user_id) do
-    name = gen_name() |> render_name()
+    name = gen_name()
 
     lifetime =
       case Store.User.get(user_id) do
@@ -66,23 +62,6 @@ defmodule Donos.Session do
   @impl GenServer
   def handle_call(:get_name, _, session) do
     {:reply, session.name, session, session.lifetime}
-  end
-
-  @impl GenServer
-  def handle_call({:set_name, name}, _, session) do
-    name = String.trim(name)
-
-    cond do
-      String.length(name) > 20 ->
-        {:reply, {:error, "ты охуел делать такой длинный ник?"}, session, session.lifetime}
-
-      String.length(name) == 0 ->
-        {:reply, {:error, "ник не может быть пустым"}, session, session.lifetime}
-
-      true ->
-        name = render_name(name)
-        {:reply, {:ok, name}, %{session | name: name}, session.lifetime}
-    end
   end
 
   @impl GenServer
@@ -116,16 +95,9 @@ defmodule Donos.Session do
     Bot.system_message(session.user_id, "Твоя сессия закончилась")
   end
 
-  defp gen_emoji do
-    Exmoji.all() |> Enum.random() |> Exmoji.EmojiChar.render()
-  end
-
   defp gen_name do
-    NamesRegister.new_name()
-  end
-
-  defp render_name(name) do
-    emoji = gen_emoji()
+    emoji = Exmoji.all() |> Enum.random() |> Exmoji.EmojiChar.render()
+    name = NamesRegister.new_name()
     "#{emoji} #{name}"
   end
 end

@@ -60,21 +60,6 @@ defmodule Donos.Bot.Logic do
     Session.start(message.from.id)
   end
 
-  defp handle_message(%{text: "/setname"} = message) do
-    response = "Синтаксис: /setname new-name"
-    send_message(message.from.id, {:system, response})
-  end
-
-  defp handle_message(%{text: <<"/setname ", name::binary>>} = message) do
-    response =
-      case Session.set_name(message.from.id, name) do
-        {:ok, name} -> "Твоё новое имя: #{name}"
-        {:error, reason} -> "Ошибка: #{reason}"
-      end
-
-    send_message(message.from.id, {:system, response})
-  end
-
   defp handle_message(%{text: "/getsession"} = message) do
     lifetime = Session.get_lifetime(message.from.id)
     response = "Длина твоей сессии в минутах: #{Duration.to(:minutes, lifetime)}"
