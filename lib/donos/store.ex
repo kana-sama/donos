@@ -2,7 +2,7 @@ defmodule Donos.Store do
   use GenServer
 
   @garbage_collector_duration Duration.from(:days, 1)
-  @garbage_collector_interval Duration.from(:minutes, 10)
+  @garbage_collector_interval Duration.from(:hours, 1)
 
   defmodule User do
     defstruct lifetime: Application.get_env(:donos, :session_lifetime)
@@ -133,7 +133,7 @@ defmodule Donos.Store do
 
     messages =
       state.messages
-      |> Enum.filter(&old_message?(now, &1))
+      |> Enum.reject(&old_message?(now, &1))
       |> Enum.into(Map.new())
 
     state = %{state | messages: messages}
@@ -149,7 +149,8 @@ defmodule Donos.Store do
   end
 
   defp old_message?(now, {_message_id, message}) do
-    DateTime.diff(now, message.posted_at) > @garbage_collector_duration
+    duration = DateTime.diff(now, message.posted_at, :millisecond)
+    duration > @garbage_collector_duration
   end
 
   defp schedule_garbage_collector() do
