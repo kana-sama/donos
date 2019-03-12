@@ -13,7 +13,7 @@ defmodule Donos.Message do
       {%{type: "italic"}, text} -> "_#{text}_"
       {%{type: "bold"}, text} -> "*#{text}*"
       {%{type: "code"}, text} -> "`#{text}`"
-      {%{type: "pre"}, text} -> "```#{text}```"
+      {%{type: "pre"}, text} -> "```\n#{text}```"
       {%{type: "text_link", url: url}, text} -> "[#{text}](#{url})"
       {_transformation, text} -> text
       text -> text
