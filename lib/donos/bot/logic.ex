@@ -69,6 +69,9 @@ defmodule Donos.Bot.Logic do
           message_id: related_message_id
         )
       end)
+
+      response = "Сообщение удалено"
+      send_message(message.from.id, {:system, response})
     else
       _ ->
         response = "Требуется ответить на свое сообщение"
