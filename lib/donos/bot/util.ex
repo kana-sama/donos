@@ -27,6 +27,18 @@ defmodule Donos.Bot.Util do
     Store.Message.put(message.message_id, name, related)
   end
 
+  def broadcast_edit(message, action) do
+    with {:ok, %Store.Message{} = stored_message} <- Store.Message.get(message.message_id) do
+      for {user_id, related_message_id} <- stored_message.related do
+        action.(user_id, stored_message.user_name, related_message_id)
+      end
+    else
+      :error ->
+        response = "Это сообщение уже нельзя редактировать"
+        send_message(message.from.id, {:system, response})
+    end
+  end
+
   def format_message({:system, text}) do
     "_#{text}_"
   end

@@ -202,20 +202,24 @@ defmodule Donos.Bot.Logic do
     IO.inspect({:unkown_message, message})
   end
 
+  defp handle_edited_message(%{caption: caption} = message) when is_binary(caption) do
+    caption = Donos.Message.transform(caption, message[:caption_entities])
+
+    broadcast_edit(message, fn user_id, _user_name, related_message_id ->
+      Nadia.edit_message_caption(user_id, related_message_id, "",
+        caption: caption,
+        parse_mode: "markdown"
+      )
+    end)
+  end
+
   defp handle_edited_message(%{text: text} = message) when is_binary(text) do
-    text = Donos.Message.transform(text, message.entities)
+    text = Donos.Message.transform(text, message[:entities])
 
-    with {:ok, %Store.Message{} = stored_message} <- Store.Message.get(message.message_id) do
-      text = format_message({:edit, stored_message.user_name, text})
-
-      for {user_id, related_message_id} <- stored_message.related do
-        Nadia.edit_message_text(user_id, related_message_id, "", text, parse_mode: "markdown")
-      end
-    else
-      :error ->
-        response = "Это сообщение уже нельзя редактировать"
-        send_message(message.from.id, {:system, response})
-    end
+    broadcast_edit(message, fn user_id, user_name, related_message_id ->
+      text = format_message({:edit, user_name, text})
+      Nadia.edit_message_text(user_id, related_message_id, "", text, parse_mode: "markdown")
+    end)
   end
 
   defp handle_edited_message(message) do
