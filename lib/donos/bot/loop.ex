@@ -16,31 +16,20 @@ defmodule Donos.Bot.Loop do
     {:ok, 0}
   end
 
-  defp return(offset) do
-    schedule_polling()
-    {:noreply, offset}
-  end
-
   @impl GenServer
   def handle_info(:poll, offset) do
-    case Nadia.get_updates(offset: offset, limit: 1, timeout: 100) do
-      {:ok, [%Update{update_id: update_id} = update | _]} when update_id >= offset ->
-        try do
+    new_offset =
+      case Nadia.get_updates(offset: offset, limit: 1, timeout: 100) do
+        {:ok, [%Update{update_id: update_id} = update | _]} when update_id >= offset ->
           Logic.handle(update)
-          return(update_id + 1)
-        rescue
-          error ->
-            IO.inspect(error)
-            return(offset)
-        end
+          update_id + 1
 
-      {:ok, []} ->
-        return(offset)
+        _ ->
+          offset
+      end
 
-      error ->
-        IO.inspect(error)
-        return(offset)
-    end
+    schedule_polling()
+    {:noreply, new_offset}
   end
 
   @impl GenServer
