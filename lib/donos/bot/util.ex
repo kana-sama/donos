@@ -55,6 +55,10 @@ defmodule Donos.Bot.Util do
     "*#{name}* отправил #{media}"
   end
 
+  def format_message(text) when is_binary(text) do
+    text
+  end
+
   def get_message_for_reply(message, user_id) do
     with %{message_id: reply_to} <- message.reply_to_message,
          {:ok, %Store.Message{related: related}} <-

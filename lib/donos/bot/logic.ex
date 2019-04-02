@@ -79,6 +79,20 @@ defmodule Donos.Bot.Logic do
     end
   end
 
+  defp handle_message(%{text: "/deanon"} = message) do
+    name = Session.get_name(message.from.id)
+    user_name = message.from.first_name
+    user_link = "tg://user?id=#{message.from.id}"
+    deanon_response = "_Настоящая личность #{name} - #{user_name}_ ([ссылка](#{user_link}))"
+
+    broadcast_content(message, fn user_id, _name ->
+      send_message(user_id, deanon_response)
+    end)
+
+    response = "_Вы сдеанонились._ /relogin _для создания новой сессии_"
+    send_message(message.from.id, response)
+  end
+
   defp handle_message(%{text: "/getsession"} = message) do
     lifetime = Session.get_lifetime(message.from.id)
     response = "Длина твоей сессии в минутах: #{Duration.to(:minutes, lifetime)}"

@@ -12,7 +12,7 @@ defmodule Donos.NamesRegister do
   end
 
   def reload do
-      Agent.update(__MODULE__, fn _ -> init() end)
+    Agent.update(__MODULE__, fn _ -> init() end)
   end
 
   def new_name do
