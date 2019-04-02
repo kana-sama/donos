@@ -60,25 +60,6 @@ defmodule Donos.Bot.Logic do
     Session.start(message.from.id)
   end
 
-  defp handle_message(%{text: "/del"} = message) do
-    with %{from: %{id: id}, reply_to_message: reply} <- message,
-         %{from: %{id: ^id}} <- reply do
-      broadcast_edit(message.reply_to_message, fn user_id, _user_name, related_message_id ->
-        Nadia.API.request("deleteMessage",
-          chat_id: user_id,
-          message_id: related_message_id
-        )
-      end)
-
-      response = "Сообщение удалено"
-      send_message(message.from.id, {:system, response})
-    else
-      _ ->
-        response = "Требуется ответить на свое сообщение"
-        send_message(message.from.id, {:system, response})
-    end
-  end
-
   defp handle_message(%{text: "/deanon"} = message) do
     name = Session.get_name(message.from.id)
     user_name = message.from.first_name
