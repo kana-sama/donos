@@ -11,6 +11,10 @@ defmodule Donos.NamesRegister do
     |> String.split("\n")
   end
 
+  def reload do
+      Agent.update(__MODULE__, fn _ -> init() end)
+  end
+
   def new_name do
     Agent.get(__MODULE__, fn names ->
       Enum.random(names)
