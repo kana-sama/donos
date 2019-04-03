@@ -62,9 +62,9 @@ defmodule Donos.Bot.Logic do
 
   defp handle_message(%{text: "/deanon"} = message) do
     name = Session.get_name(message.from.id)
-    user_name = message.from.first_name
+    user_name = [message.from.first_name, message.from.last_name] |> Enum.join(" ")
     user_link = "tg://user?id=#{message.from.id}"
-    deanon_response = "_Настоящая личность #{name} - #{user_name}_ ([ссылка](#{user_link}))"
+    deanon_response = "_Настоящая личность_ *#{name}* _-_ *#{user_name}* ([ссылка](#{user_link}))"
 
     broadcast_content(message, fn user_id, _name ->
       send_message(user_id, deanon_response)
