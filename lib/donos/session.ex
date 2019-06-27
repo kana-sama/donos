@@ -1,7 +1,7 @@
 defmodule Donos.Session do
   use GenServer
 
-  alias Donos.{SessionsRegister, Bot, Store}
+  alias Donos.{SessionsRegister, Store}
 
   defmodule State do
     defstruct [:user_id, :name, :lifetime]
@@ -53,7 +53,6 @@ defmodule Donos.Session do
 
     session = %State{user_id: user_id, name: name, lifetime: lifetime}
 
-    Bot.system_message(user_id, "Твое новое имя: #{name}")
     SessionsRegister.register(user_id, self())
 
     {:ok, session, session.lifetime}
@@ -92,7 +91,6 @@ defmodule Donos.Session do
   @impl GenServer
   def terminate(_reason, session) do
     SessionsRegister.unregister(session.user_id)
-    Bot.system_message(session.user_id, "Твоя сессия закончилась")
   end
 
   defp gen_name do

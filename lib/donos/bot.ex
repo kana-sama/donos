@@ -1,14 +1,10 @@
 defmodule Donos.Bot do
   use Supervisor
 
-  alias Donos.Bot.{Loop, Logic, Util}
+  alias Donos.Bot.{Loop, Logic}
 
   def start_link(_) do
     Supervisor.start_link(__MODULE__, :none, name: __MODULE__)
-  end
-
-  def system_message(user_id, message) do
-    Util.send_message(user_id, {:system, message})
   end
 
   @impl Supervisor
