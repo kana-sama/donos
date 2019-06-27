@@ -1,7 +1,7 @@
 defmodule Donos.Session do
   use GenServer
 
-  alias Donos.{SessionsRegister, NamesRegister, Bot, Store}
+  alias Donos.{SessionsRegister, Bot, Store}
 
   defmodule State do
     defstruct [:user_id, :name, :lifetime]
@@ -96,8 +96,9 @@ defmodule Donos.Session do
   end
 
   defp gen_name do
-    emoji = Exmoji.all() |> Enum.random() |> Exmoji.EmojiChar.render()
-    name = NamesRegister.new_name()
-    "#{emoji} #{name}"
+    Exmoji.all()
+    |> Enum.take_random(5)
+    |> Enum.map(&Exmoji.EmojiChar.render/1)
+    |> Enum.join()
   end
 end
