@@ -93,13 +93,14 @@ defmodule Donos.Session do
     SessionsRegister.unregister(session.user_id)
   end
 
-  defp random_emoji do
-    Exmoji.all()
-    |> Enum.random()
-    |> Exmoji.EmojiChar.render()
-  end
-
   defp random_name do
-    "#{random_emoji()} #{random_emoji()}"
+    emoji =
+      Exmoji.all()
+      |> Enum.random()
+      |> Exmoji.EmojiChar.render()
+
+    name = Faker.Name.name()
+
+    "#{emoji} #{name}"
   end
 end
