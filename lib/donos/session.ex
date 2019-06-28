@@ -40,7 +40,7 @@ defmodule Donos.Session do
 
   @impl GenServer
   def init(user_id) do
-    name = gen_name()
+    name = random_name()
 
     lifetime =
       case Store.User.get(user_id) do
@@ -93,10 +93,13 @@ defmodule Donos.Session do
     SessionsRegister.unregister(session.user_id)
   end
 
-  defp gen_name do
+  defp random_emoji do
     Exmoji.all()
-    |> Enum.take_random(5)
-    |> Enum.map(&Exmoji.EmojiChar.render/1)
-    |> Enum.join()
+    |> Enum.random()
+    |> Exmoji.EmojiChar.render()
+  end
+
+  defp random_name do
+    "#{random_emoji()} #{random_emoji()}"
   end
 end
