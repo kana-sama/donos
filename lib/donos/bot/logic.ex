@@ -76,31 +76,32 @@ defmodule Donos.Bot.Logic do
 
   defp handle_message(%{text: "/getsession"} = message) do
     lifetime = Session.get_lifetime(message.from.id)
-    response = "Длина твоей сессии в минутах: #{Duration.to(:minutes, lifetime)}"
+    response = "Длина сессии: #{Duration.format(lifetime)}"
     send_message(message.from.id, {:system, response})
   end
 
   defp handle_message(%{text: "/setsession"} = message) do
-    response = "Нужно дописать длину сессии (в минутах) после /setsession"
-    send_message(message.from.id, {:system, response})
+    response =
+      [
+        "_Формат_:```",
+        "/setsession 10 (10 минут)",
+        "/setsession 1d 1h 1m (1 день, 1 час и 1 минута)",
+        "/setsession 1d 1 (1 день и 1 минута)",
+        "```"
+      ]
+      |> Enum.join("\n")
+
+    send_message(message.from.id, response)
   end
 
   defp handle_message(%{text: <<"/setsession ", lifetime::binary>>} = message) do
     response =
-      try do
-        lifetime = lifetime |> String.trim() |> String.to_integer()
-        lifetime = Duration.from(:minutes, lifetime)
-
-        case Session.set_lifetime(message.from.id, lifetime) do
-          :ok ->
-            "Твоя новая длина сессии (в минутах): #{Duration.to(:minutes, lifetime)}"
-
-          {:error, reason} ->
-            "Ошибка: #{reason}"
-        end
-      rescue
-        ArgumentError ->
-          "Ошибка: невалидный аргумент"
+      with lifetime when is_integer(lifetime) <- Duration.parse(lifetime),
+           :ok <- Session.set_lifetime(message.from.id, lifetime) do
+        "Твоя новая длина сессии: #{Duration.format(lifetime)}"
+      else
+        {:error, reason} ->
+          "Ошибка: #{reason}"
       end
 
     send_message(message.from.id, {:system, response})
