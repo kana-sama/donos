@@ -23,3 +23,5 @@ erl_crash.dump
 donos-*.tar
 
 .elixir_ls
+
+config/config.prod.exs

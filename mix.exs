@@ -19,6 +19,9 @@ defmodule Donos.MixProject do
   end
 
   defp deps do
-    []
+    [
+      {:ecto_sql, "~> 3.1"},
+      {:postgrex, "~> 0.14.3"}
+    ]
   end
 end
