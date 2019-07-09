@@ -23,6 +23,3 @@ erl_crash.dump
 donos-*.tar
 
 .elixir_ls
-users
-/store
-/store_*
