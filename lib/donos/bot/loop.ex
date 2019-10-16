@@ -5,6 +5,7 @@ defmodule Donos.Bot.Loop do
   alias Nadia.Model.Update
 
   @delay 100
+  @blacklist Application.get_env(:donos, :blacklist) || MapSet.new()
 
   def start_link(_) do
     GenServer.start_link(__MODULE__, :none, name: __MODULE__)
@@ -16,12 +17,19 @@ defmodule Donos.Bot.Loop do
     {:ok, 0}
   end
 
+  defp author_id(%{message: %{from: id}}), do: id
+  defp author_id(%{edited_message: %{from: id}}), do: id
+  defp author_id(_), do: nil
+
   @impl GenServer
   def handle_info(:poll, offset) do
     new_offset =
       case Nadia.get_updates(offset: offset, limit: 1, timeout: 100) do
         {:ok, [%Update{update_id: update_id} = update | _]} when update_id >= offset ->
-          Logic.handle(update)
+          unless MapSet.member?(@blacklist, author_id(update)) do
+            Logic.handle(update)
+          end
+
           update_id + 1
 
         _ ->
