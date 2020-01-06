@@ -1,4 +1,8 @@
 defmodule Donos.Message do
+  def to_markdown(nil, entities) do
+    to_markdown("", entities)
+  end
+
   def to_markdown(text, entities) do
     text
     |> split_by_entities(entities || [])
